@@ -1,6 +1,15 @@
 Scala Collections Tips and Tricks
 =================================
 
+Представляю вашему вниманию перевод статьи
+[Павла Фатина](https://pavelfatin.com/about)
+[Scala Collections Tips and Tricks](https://pavelfatin.com/scala-collections-tips-and-tricks/).
+Павел работает в [JetBrains](https://www.jetbrains.com/) и занимается
+разработкой
+[Scala плагина](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA)
+для IntelliJ IDEA.
+
+
 Library article presents a list of simplifications and optimizations
 of typical [Scala Collections API](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 

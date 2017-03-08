@@ -1,11 +1,12 @@
 Scala Collections Tips and Tricks
 =================================
 
-<img src="https://pavelfatin.com/images/scala-collections.jpg"
-     style="float:left;">
-
 Library article presents a list of simplifications and optimizations
 of typical [Scala Collections API](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
+
+<img src="https://pavelfatin.com/images/scala-collections.jpg"
+     style="float:left">
+
 
 Some of the tips rest upon subtle implementation details,
 though most of the recipes are just common sense transformations that,

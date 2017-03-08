@@ -2,16 +2,17 @@ Scala Collections Tips and Tricks
 =================================
 
 Library article presents a list of simplifications and optimizations
-of typical Scala Collections API usages.
+of typical [Scala Collections API](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
 Some of the tips rest upon subtle implementation details,
 though most of the recipes are just common sense transformations that,
 in practice, are often overlooked.
 
-The list is inspired by my efforts to devise practical Scala Collections
-inspections for the IntelliJ Scala plugin. We’re now in process of
-implementing those inspections, so if you use the plugin in IDEA,
-you’ll automatically benefit from static code analysis.
+The list is inspired by my efforts to devise practical
+[Scala Collections inspections](https://youtrack.jetbrains.com/oauth?state=%2Fissues%2FSCL%3Fq%3Dby%253A%2BPavel.Fatin%2Bcollection%2Border%2Bby%253A%2Bcreated)
+for the [IntelliJ Scala plugin](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA).
+We’re now in process of implementing those inspections, so if you use the
+plugin in IDEA, you’ll automatically benefit from static code analysis.
 
 Nevertheless, the recipes are valuable by themselves and can help
 you to deepen your understanding of Scala Collections
@@ -19,6 +20,7 @@ and to make your code faster and cleaner.
 
 
 **Contents:**
+
   1. Legend
   2. Composition
   3. Side effects
@@ -213,7 +215,8 @@ or CPU cycles (otherwise wasted on runtime length checks).
 Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 ### 4.2 Length
-*Prefer `length` to size for arrays*
+*Prefer `length` to `size` for arrays*
+
     // Before
     array.size
 
@@ -222,13 +225,14 @@ Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 While `size` and `length` are basically synonyms, in Scala 2.11
 `Array.size` calls are still implemented via implicit conversion,
-so that intermediate wrapper objects are created for every method call.
-Unless you enable escape analysis in JVM ,
-those temporary objects will burden GC and can potentially
+so that intermediate wrapper objects are created for every method call. Unless
+you enable [escape analysis](https://en.wikipedia.org/wiki/Escape_analysis)
+in JVM , those temporary objects will burden GC and can potentially
 degrade code performance (especially, within loops).
 
 
 *Don’t negate emptiness-related properties*
+
     // Before
     !seq.isEmpty
     !seq.nonEmpty

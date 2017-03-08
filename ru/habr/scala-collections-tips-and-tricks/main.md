@@ -1106,13 +1106,13 @@ Also applicable to: Set, Option, Map, Iterator.
 This recipe is subdivided into three parts
 (depending on transformation final result).
 
-1. Transformation reduces collection to a single value.
+1) Transformation reduces collection to a single value.
 
-      // Before
-      seq.map(f).flatMap(g).filter(p).reduce(???)
+    // Before
+    seq.map(f).flatMap(g).filter(p).reduce(???)
 
-      // After
-      seq.view.map(f).flatMap(g).filter(p).reduce(???)
+    // After
+    seq.view.map(f).flatMap(g).filter(p).reduce(???)
 
 In place of `reduce` might be any method that reduces collection to
 a single value, for example:

@@ -1691,3 +1691,213 @@ The latter expression looks cleaner.
 
 There’s a special method for doing that, which is more concise and,
 less computationally-expensive.
+
+
+## 7. Maps
+
+Just like with other collection classes, many tips for sequences are
+applicable to maps as well, so we’ll enumerate only map-specific ones.
+
+
+*Don’t search for a value manually*
+
+    // Before
+    map.find(_._1 == k).map(_._2)
+
+    // After
+    map.get(k)
+
+While in principe the former code will work, the performance is sub-optimal,
+because `Map` is not a simple collection of (key, value) pairs — it can
+perform lookups in a much more efficient way.
+
+Moreover, the latter expression is simple and easier to undestand.
+
+
+*Don’t use `get` when a raw value is needed*
+
+    // Before
+    map.get(k).get
+
+    // After
+    map(k)
+
+There’s no need to produce an intermediate `Option` value when a
+raw value is needed.
+
+
+*Don’t use lift instead of get*
+
+    // Before
+    map.lift(k)
+
+    // After
+    map.get(k)
+
+There’s no need to treat map value as a partial function to acquire an
+optional result (which is useful for sequences), because we have a
+built-in method with the same functionality. Though `lift` works fine, it
+performs additional transformation (from `Map` to `PartialFunction`) and it
+might look confusing.
+
+
+*Don’t call `get` with `getOrElse` separately*
+
+    // Before
+    map.get(k).getOrElse(z)
+
+    // After
+    map.getOrElse(k, z)
+
+The single method call is simpler, both syntax- and performance-wise.
+In both cases `z` is computed lazily, on demand.
+
+
+*Don’t extract keys manually*
+
+    // Before
+    map.map(_._1)
+    map.map(_._1).toSet
+    map.map(_._1).toIterator
+
+    // After
+    map.keys
+    map.keySet
+    map.keysIterator
+
+The optimized expressions are more intelligible (and might be faster).
+
+
+*Don’t extract values manually*
+
+    // Before
+    map.map(_._2)
+    map.map(_._2).toIterator
+
+    // After
+    map.values
+    map.valuesIterator
+
+The simplified expressions are more comprehensible (and potentially faster).
+
+
+*Be careful with `filterKeys`*
+
+    // Before
+    map.filterKeys(p)
+
+    // After
+    map.filter(p(_._1))
+
+The `filterKeys` methods wraps the original map without copying any elements.
+There’s nothing wrong with that per se, however such a behaviour is hardly
+expected from `filterKeys` method.
+Because it unexpectedly behaves like a view, code performance might be
+substantially degraded in some cases (e. g. for `filterKeys(p).groupBy(???)`).
+
+Another possible pitfall is unexpected “laziness” (collection transformers
+are expected to be strict by default) – the predicated is not evaluated at
+all withing the method call itself,
+so possible side effects might be reordered.
+
+The `filterKeys` method should probably be deprecated, because it’s now
+impossible to [make it strict](https://issues.scala-lang.org/browse/SI-4776)
+without breaking backward compatibility. A more suitable name for the current
+implementation is `withKeyFilter` (by analogy with the withFilter method).
+
+All in all, it seems reasonable to follow the
+[Rule of Least Surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
+and to filter keys manually.
+
+Nevertheless, as the view-like functionality of `filterKeys` is potentially
+useful (when only a few entries will be accessed while the map is relatively
+large), we may still consider using the method. To keep other people who read
+(or modify) our code from confusion, it’s better clarify our intent by defining
+an appropriate method synonym:
+
+    type MapView[A, +B] = Map[A, B]
+
+    implicit class MapExt[A, +B](val map: Map[A, B]) extends AnyVal {
+      def withKeyFilter(p: A => Boolean): MapView[A, B] =
+        map.filterKeys(p)
+    }
+
+We’re using the type alias `MapView` to indicate that the result
+map is view-like.
+
+Another option is to define a simple helper method, like:
+
+    def get(k: T) = if (p(k)) map.get(k) else None
+
+
+*Be careful with mapValues*
+
+    // Before
+    map.mapValues(f)
+
+    // After
+    map.map(f(_._2))
+
+Rationale is the same as in the previous tip. In a similar way,
+we may define an unambiguous synonym:
+
+    type MapView[A, +B] = Map[A, B]
+
+    implicit class MapExt[A, +B](val map: Map[A, B]) extends AnyVal {
+      def withValueMapper[C](f: B => C): MapView[A, C] =
+        map.mapValues(f)
+    }
+
+A simpler option would be to define a helper method, like:
+
+    def get(k: T) = map.get(k).map(f)
+
+
+*Don’t filter out keys manually*
+
+    // Before
+    map.filterKeys(!seq.contains(_))
+
+    // After
+    map -- seq
+
+We can rely on the simpler syntax to filter out keys.
+
+
+*Use assignment operators to reassign a map*
+
+    // Before
+    map = map + x -> y
+    map1 = map1 ++ map2
+    map = map - x
+    map = map -- seq
+
+    // After
+    map += x -> y
+    map1 ++= map2
+    map -= x
+    map --= seq
+
+As with sequences, we may rely on syntactic sugar to simplify such statements.
+
+
+## 8. Supplement
+In addition to the listed recipes, I recommend you to take a look at the
+[Scala Collections documentation](http://docs.scala-lang.org/overviews/collections/introduction.html),
+which is surprisingly good an easy to read.
+
+See also:
+
+  * [Scala for Project Euler](https://pavelfatin.com/scala-for-project-euler/) —
+    Concise functional Scala solutions to the Project Euler problems.
+  * [Ninety-nine](https://pavelfatin.com/ninety-nine/) — Ninety-nine problems
+    in Scala, Java, Clojure and Haskell (with multiple solutions)
+
+Those puzzles really helped me to shape and deepen my understanding of
+Scala collections.
+
+While the list of tips is rather comprehensive,
+it’s probably far from complete. Moreover, because applicability
+of the recipes varies greatly, some fine-tuning is definitely needed.
+Your suggestions welcome.
+

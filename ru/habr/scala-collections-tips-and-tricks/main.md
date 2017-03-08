@@ -1116,9 +1116,10 @@ This recipe is subdivided into three parts
 
 In place of `reduce` might be any method that reduces collection to
 a single value, for example:
-`reduceLeft, `reduceRight`, `fold`, `foldLeft`, `foldRight`, `sum`, `product`, `min`, `max`,
-`head`, `headOption`, `last`, `lastOption`, `indexOf`, `lastIndexOf`, `find`, `contains`,
-`exists`, `count`, `length`, `mkString`, etc.
+`reduceLeft`, `reduceRight`, `fold`, `foldLeft`, `foldRight`, `sum`,
+`product`, `min`, `max`, `head`, `headOption`, `last`, `lastOption`,
+`indexOf`, `lastIndexOf`, `find`, `contains`, `exists`, `count`,
+`length`, `mkString`, etc.
 
 The exact order of transformations is not relevant — what matters
 is that we’re creating one or more temporary, intermediate collections,

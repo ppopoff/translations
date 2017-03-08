@@ -450,7 +450,7 @@ Additional benefit of the latter expression is that it works well with
 possibly infinite collections (like `Stream`).
 
 
-## 4.5 Existence
+### 4.5 Existence
 *Don’t use equality predicate to check element presence*
 
     // Before
@@ -538,5 +538,1156 @@ The predicate `p` must be pure.
 Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 
+### 4.6 Filtering
+*Don’t negate filter predicate*
+
+    // Before
+    seq.filter(!p)
+
+    // After
+    seq.filterNot(p)
+
+The latter expression is syntactically simpler
+(while semantically they are equal).
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 
+*Don’t resort to filtering to count elements*
+
+    // Before
+    seq.filter(p).length
+
+    // After
+    seq.count(p)
+
+The call to `filter` creates an intermediate collection
+(which is not really needed) that takes heap space and loads GC.
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+
+
+*Don’t use filtering to find first occurrence*
+
+    // Before
+    seq.filter(p).headOption
+
+    // After
+    seq.find(p)
+
+Unless `seq` is a lazy collection (like `Stream`),
+filtering will find all occurrences (and create a temporary collection),
+while only the first one is needed.
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+
+
+### 4.7 Sorting
+
+*Don’t sort by a property manually*
+
+    // Before
+    seq.sortWith(_.property <  _.property)
+
+    // After
+    seq.sortBy(_.property)
+
+We have a special method for that, which is more clear and concise.
+
+
+*Don’t sort by identity manually*
+
+    // Before
+    seq.sortBy(identity)
+    seq.sortWith(_ < _)
+
+    // After
+    seq.sorted
+
+There’s a special method for that, more clear and concise.
+
+
+*Perform reverse sorting in one step*
+
+    // Before
+    seq.sorted.reverse
+    seq.sortBy(_.property).reverse
+    seq.sortWith(f(_, _)).reverse
+
+    // After
+    seq.sorted(Ordering[T].reverse)
+    seq.sortBy(_.property)(Ordering[T].reverse)
+    seq.sortWith(!f(_, _))
+
+That’s how we can avoid a temporary collection allocation and
+exclude the additional transformation step
+(to save both heap space and CPU cycles).
+
+
+### 4.8 Reduction
+*Don’t calculate sum manually*
+
+    // Before
+    seq.reduce(_ + _)
+    seq.fold(z)(_ + _)
+
+    // After
+    seq.sum
+    seq.sum + z
+
+The advantage is clarity and conciseness.
+
+Other possible methods are:
+`reduceLeft`, `reduceRight`, `foldLeft`, `foldRight`.
+
+The second transformation might be replaced with the first when z is 0.
+
+Also applicable to: `Set`, `Iterator`.
+
+
+*Don’t calculate product manually*
+
+    // Before
+    seq.reduce(_ * _)
+    seq.fold(z)(_ * _)
+
+    // After
+    seq.product
+    seq.product * z
+
+Rationale is the same as in the previous tip.
+
+The second transformation might be replaced with the first when z is 1.
+
+Also applicable to: `Set`, `Iterator`.
+
+
+*Don’t search for the smallest element manually*
+
+    // Before
+    seq.reduce(_ min _)
+    seq.fold(z)(_ min _)
+
+    // After
+    seq.min
+    z min seq.min
+
+Rationale is the same as in the previous tips.
+
+Also applicable to: `Set`, `Iterator`.
+
+
+*Don’t search for the largest element manually*
+
+    // Before
+    seq.reduce(_ max _)
+    seq.fold(z)(_ max _)
+
+    // After
+    seq.max
+    z max seq.max
+
+Rationale is the same as in the previous tips.
+
+Also applicable to: `Set`, `Iterator`.
+
+
+*Don’t emulate forall*
+
+    // Before
+    seq.foldLeft(true)((x, y) => x && p(y))
+    !seq.map(p).contains(false)
+
+    // After
+    seq.forall(p)
+
+The goal of the simplification is clarity and conciseness.
+
+The predicate `p` must be pure.
+
+Also applicable to: `Set`, `Option` (for the second line), `Iterator`.
+
+
+*Don’t emulate `exists`*
+
+    // Before
+    seq.foldLeft(false)((x, y) => x || p(y))
+    seq.map(p).contains(true)
+
+    // After
+    seq.exists(p)
+
+Besides clarity and conciseness,
+the latter expression might be faster
+(because it stops element processing when a single occurrence is found)
+and it can work with infinite sequences.
+
+The predicate `p` must be pure.
+
+Also applicable to: `Set`, `Option` (for the second line), `Iterator`.
+
+
+*Don’t emulate `map`*
+
+    // Before
+    seq.foldLeft(Seq.empty)((acc, x) => acc :+ f(x))
+    seq.foldRight(Seq.empty)((x, acc) => f(x) +: acc)
+
+    // After
+    seq.map(f)
+
+That’s a “classical” implementation of map via folding
+in functional programming.
+While it’s surely didactic, there’s no need to resort to such a
+formulation when we have the concise built-in method
+(which is also faster, because it uses a simple `while` loop under the hood).
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+*Don’t emulate filter*
+
+    // Before
+    seq.foldLeft(Seq.empty)((acc, x) => if (p(x)) acc :+ x else acc)
+    seq.foldRight(Seq.empty)((x, acc) => if (p(x)) x +: acc else acc)
+
+    // After
+    seq.filter(p)
+
+Rationale is the same as in the previous tip.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+*Don’t emulate reverse*
+
+    // Before
+    seq.foldLeft(Seq.empty)((acc, x) => x +: acc)
+    seq.foldRight(Seq.empty)((x, acc) => acc :+ x)
+
+    // After
+    seq.reverse
+
+Again, the built-in method is cleaner and faster.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+### 4.9 Matching
+
+Here are several dedicated tips that are related to Scala’s
+[pattern matching](http://docs.scala-lang.org/tutorials/tour/pattern-matching.html)
+and [partial functions](https://www.scala-lang.org/api/current/index.html#scala.PartialFunction).
+
+
+*Use partial function instead of function with pattern matching*
+
+    // Before
+    seq.map {
+      _ match {
+        case P => ??? // x N
+      }
+    }
+
+    // After
+    seq.map {
+      case P => ??? // x N
+    }
+
+The updated expression produces the same result, yet looks simpler.
+
+It’s possible to apply this transformation to any functions,
+not only to `map` arguments.
+This tip is not actually collection-related at all. However, because
+[higher-order functions](https://en.wikipedia.org/wiki/Higher-order_function)
+are so ubiquitous in Scala collection API, the tip is especially handy.
+
+
+*Convert `flatMap` with partial function to collect*
+
+    // Before
+    seq.flatMap {
+      case P => Seq(???) // x N
+      case _ => Seq.empty
+    }
+
+    // After
+    seq.collect {
+      case P => ??? // x N
+    }
+
+The updated expression produces the same result, but looks much simpler.
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+
+
+*Convert `match` to `collect` when the result is a collection*
+
+    // Before
+    v match {
+      case P => Seq(???) // x N
+      case _ => Seq.empty
+    }
+
+    // After
+    Seq(v) collect {
+      case P => ??? // x N
+    }
+
+When all the case statements produce collections,
+it’s possible to simplify the expression by converting the `match`
+statement to a `collect` call.
+In that way we can write collection creation only once and we can omit
+the explicit default `case` branch.
+
+Personally, I often use this trick with `Option` rather than sequences per se.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+*Don’t emulate collectFirst*
+
+    // Before
+    seq.collect{case P => ???}.headOption
+
+    // After
+    seq.collectFirst{case P => ???}
+
+We have a special method for such a use case,
+which also works faster on non-lazy collections.
+
+The partial function must be pure.
+
+Also applicable to: `Set`, `Map`, `Iterator`.
+
+
+### 4.10 Rewriting
+Merge consecutive `filter` calls
+
+    // Before
+    seq.filter(p1).filter(p2)
+
+    // After
+    seq.filter(x => p1(x) && p2(x))
+
+That’s how we can avoid creation of an intermediate collection
+(after the first filter call), and thus relieve GC’s burden.
+
+We may also apply a generalized approach that relies on views (see below),
+so the result will be `seq.view.filter(p1).filter(p2).force`.
+
+The predicates `p1` and `p2` must be pure.
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+
+
+*Merge consecutive `map` calls*
+
+    // Before
+    seq.map(f).map(g)
+
+    // After
+    seq.map(f.andThen(g))
+
+Again, we’re creating the resulting collection directly,
+without an intermediate one.
+
+We may also apply a generalized approach that relies on views (see below),
+so the result will be `seq.view.map(f).map(g).force`.
+
+The functions `f` and `g` must be pure.
+
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+
+
+*Do sorting after filtering*
+
+    // Before
+    seq.sorted.filter(p)
+
+    // After
+    seq.filter(p).sorted
+
+Sorting is computationally expensive procedure.
+There’s no need to sort elements that will be potentially
+filtered out in the next step.
+
+The same applies to the other possible sorting methods,
+like `sortWith` and `sortBy`.
+
+The predicate `p` must be pure.
+
+
+*Don’t reverse collection explicitly before calling `map`*
+
+    // Before
+    seq.reverse.map(f)
+
+    // After
+    seq.reverseMap(f)
+
+The first expression creates an intermediate (reversed) collection before
+transforming elements, which is quite reasonable sometimes (e.g. for `List`).
+Other times it’s possible to perform the required transformation directly,
+without creating the intermediate collection, which is more efficient.
+
+
+*Don’t reverse collection explicitly to acquire reverse iterator*
+
+    // Before
+    seq.reverse.iterator
+
+    // After
+    seq.reverseIterator
+
+Again, the latter expression is simpler and might be more efficient.
+
+
+*Don’t convert collection to `Set` to find distinct elements*
+
+    // Before
+    seq.toSet.toSeq
+
+    // After
+    seq.distinct
+
+There’s no need to create a temporary set (at least explicitly) to
+find distinct elements.
+
+
+*Don’t emulate slice*
+
+    // Before
+    seq.drop(x).take(y)
+
+    // After
+    seq.slice(x, x + y)
+
+For linear sequences all we gain is clear intent and conciseness.
+For indexed sequences, however,
+we may expect a potential performance improvements.
+
+Also applicable to: `Set`, `Map`, `Iterator`.
+
+
+*Don’t emulate `splitAt`*
+
+    // Before
+    val seq1 = seq.take(n)
+    val seq2 = seq.drop(n)
+
+    // After
+    val (seq1, seq2) = seq.splitAt(n)
+
+The optimized expression performs faster on linear sequences
+(like `List` or `Stream`), because it computes the results in a single pass.
+
+Also applicable to: `Set`, `Map`.
+
+
+*Don’t emulate `span`*
+
+    // Before
+    val seq1 = seq.takeWhile(p)
+    val seq2 = seq.dropWhile(p)
+
+    // After
+    val (seq1, seq2) = seq.span(p)
+
+That’s how we can traverse the sequence and check the predicate only once,
+instead of twice.
+
+The predicate `p` must be pure.
+
+Also applicable to: `Set`, `Map`, `Iterator`.
+
+
+*Don’t emulate `partition`*
+
+    // Before
+    val seq1 = seq.filter(p)
+    val seq2 = seq.filterNot(p)
+
+    // After
+    val (seq1, seq2) = seq.partition(p)
+
+Again, the benefit is a single-pass computation.
+
+The predicate `p` must be pure.
+
+Also applicable to: `Set`, `Map`, `Iterator`.
+
+
+*Don’t emulate `takeRight`*
+
+    // Before
+    seq.reverse.take(n).reverse
+
+    // After
+    seq.takeRight(n)
+
+The latter expression is more concise and potentially more efficient
+(for both indexed- and linear sequences).
+
+
+*Don’t emulate `flatten`*
+
+    // Before (seq: Seq[Seq[T]])
+    seq.reduce(_ ++ _)
+    seq.fold(Seq.empty)(_ ++ _)
+    seq.flatMap(identity)
+
+    // After
+    seq.flatten
+
+There’s no need to flatten collections manually when we have a dedicated
+built-in method for doing exactly that.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+*Don’t emulate `flatMap`*
+
+    // Before (f: A => Seq[B])
+    seq.map(f).flatten
+
+    // After
+    seq.flatMap(f)
+
+Again, there’s no need to emulate built-in method manually.
+Besides improved clarity, we can skip the creation of an intermediate collection.
+
+Also applicable to: Set, Option, Iterator.
+
+
+*Don’t use `map` when result is ignored*
+
+    // Before
+    seq.map(???) // the result is ignored
+
+    // After
+    seq.foreach(???)
+
+When side effect is all that is needed,
+there’s no justification for calling `map`.
+Such a call is misleading (and less efficient).
+
+Also applicable to: Set, Option, Map, Iterator.
+
+
+*Don’t use `unzip` to extract a single component*
+
+    // Before (seq: Seq[(A, B]])
+    seq.unzip._1
+
+    // After
+    seq.map(_._1)
+
+There’s no need to create additional collection(s)
+when only a single component is required.
+
+Other possible method: `unzip3`.
+
+Also applicable to: Set, Option, Map, Iterator.
+
+
+*Don’t create temporary collections*
+
+This recipe is subdivided into three parts
+(depending on transformation final result).
+
+1. Transformation reduces collection to a single value.
+
+    // Before
+    seq.map(f).flatMap(g).filter(p).reduce(???)
+
+    // After
+    seq.view.map(f).flatMap(g).filter(p).reduce(???)
+
+In place of `reduce` might be any method that reduces collection to
+a single value, for example:
+`reduceLeft, `reduceRight`, `fold`, `foldLeft`, `foldRight`, `sum`, `product`, `min`, `max`,
+`head`, `headOption`, `last`, `lastOption`, `indexOf`, `lastIndexOf`, `find`, `contains`,
+`exists`, `count`, `length`, `mkString`, etc.
+
+The exact order of transformations is not relevant — what matters
+is that we’re creating one or more temporary, intermediate collections,
+that are not needed by themselves, yet they will take heap space and burden GC.
+That happens because, by default, all collection transformers
+(`map`, `flatMap`, `filter`, `++,` etc.) are “strict” (except for `Stream`)
+and construct a new collection with all its elements as a result of
+transformation.
+
+That’s where views come to the rescue — we may think of view as some
+kind of `Iterator`, that allows re-iteration:
+
+  * Views are “lazy” — elements constructed only when they are needed.
+  * Views don’t hold created elements in memory (which even `Stream` does).
+
+To go from a collection to its view, we use the `view` method.
+
+2. Transformation produces a collection of the same class.
+
+It’s possible to use views when the final result of transformation is still a
+collection — the `force` method will build a collection of the original class
+(while creation of all the intermediate collections is still avoided):
+
+    // Before
+    seq.map(f).flatMap(g).filter(p)
+
+    // After
+    seq.view.map(f).flatMap(g).filter(p).force
+
+If the only intermediate transformation is filtering, you may consider using
+`withFilter` method as an alternative:
+
+    seq.withFilter(p).map(f)
+
+The method is originally [intended](https://www.scala-lang.org/old/node/3698.html#comment-14546)
+to be used in for comprehensions. It works much like a view — it creates a
+temporary object that restricts the domain of subsequent collection
+transformations (so, it reorders possible side effects).
+However, there’s no need to explicitly convert collection to / from temporary
+representation (by calling `view` and `force`).
+
+While view-based approach is more universal, in this particular case you may
+prefer `withFilter` method because of the conciseness.
+
+3. Transformation creates a collection of different class.
+
+    // Before
+    seq.map(f).flatMap(g).filter(p).toList
+
+    // After
+    seq.view.map(f).flatMap(g).filter(p).toList
+
+This time we use a suitable converter method
+(instead of the generic `force` call),
+so the result will be a collection of different class.
+
+There also exists an alternative way of handling “transformation + conversion”
+case that relies on `breakOut`:
+
+    seq.map(f)(collection.breakOut): List[T]
+
+Such an expression is functionally equivalent to using a view,
+however this approach:
+
+  * needs expected type to be explicit
+  (which often requires an additional type annotation),
+  * is limited to a single transformation
+  (like `map`, `flatMap`, `filter`, `fold`, etc.),
+  * looks rather tricky
+  (because implicit builders are usually [omitted](https://www.scala-lang.org/api/current/index.html#scala.collection.Seq)
+  from the Scala Collections API docs).
+
+Thus, it’s usually better to substitute `breakOut` for a view, which is more
+clear, more concise and more flexible.
+
+Views are especially efficient when collection size is relatively large.
+
+All the functions (like `f` and `g`) and predicates (`p`) must be pure
+(because view might delay, skip or reorder computations).
+
+Also applicable to: `Set`, `Map`.
+
+
+*Use assignment operators to reassign a sequence*
+
+    // Before
+    seq = seq :+ x
+    seq = x +: seq
+    seq1 = seq1 ++ seq2
+    seq1 = seq2 ++ seq1
+
+    // After
+    seq :+= x
+    seq +:= x
+    seq1 ++= seq2
+    seq1 ++:= seq2
+
+Scala offers a syntactic sugar known as “assignment operators” —
+it automatically converts `x <op>= y` statements into `x = x <op> y`
+where `<op>` is some character operator (like `+,` `-,` etc.).
+Note, that if `<op>` ends with `:` it is considered right-associative
+(i. e. invoked on the right expression, instead of the left).
+
+There’s also a special syntax for lists and streams:
+
+    // Before
+    list = x :: list
+    list1 = list2 ::: list
+
+    stream = x #:: list
+    stream1 = stream2 #::: stream
+
+    // After
+    list ::= x
+    list1 :::= list2
+
+    stream #::= x
+    stream1 #:::= stream2
+
+The optimized statements are more concise.
+
+Also applicable to: `Set`, `Map`, `Iterator` (with operator specifics in mind).
+
+
+*Don’t convert collection type manually*
+
+    // Before
+    seq.foldLeft(Set.empty)(_ + _)
+    seq.foldRight(List.empty)(_ :: _)
+
+    // After
+    seq.toSet
+    seq.toList
+
+We have corresponding build-it methods for doing that, which are
+cleaner and faster.
+
+If you need to transform or filter values in the course of the conversion,
+consider using views or similar techniques, as described above.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+*Be careful with `toSeq` on non-strict collections*
+
+    // Before (seq: TraversableOnce[T])
+    seq.toSeq
+
+    // After
+    seq.toStream
+    seq.toVector
+
+Because `Seq(...)` creates a strict collection (namely, [Vector](https://www.scala-lang.org/api/current/index.html#scala.collection.immutable.Vector)),
+we may be tempted to use toSeq to convert a non-strict entity
+(like `Stream`, `Iterator`, or “view”) to a strict collection. However,
+`TraversableOnce.toSeq` returns a `Stream` under the hood, which is a lazy
+collection, and that might result in hard-to-find bugs or performance problems.
+Even if a stream is exactly what you expect,
+such an expression might confuse other people who read your code.
+
+Here’s a typical example of the pitfall:
+
+    val source = Source.fromFile("lines.txt")
+    val lines = source.getLines.toSeq
+    source.close()
+    lines.foreach(println)
+
+Such a code will throw an `IOException` complaining that
+the stream is already closed.
+
+To clarify the intent, it’s better to write `toStream` explicitly, or,
+if we need a strict collection, after all, to use `toVector` instead of `toSeq`.
+
+*Don’t convert to String manually*
+
+    // Before (seq: Seq[String])
+    seq.reduce(_ + _)
+    seq.reduce(_ + separator + _)
+    seq.fold(prefix)(_ + _)
+    seq.map(_.toString).reduce(_ + _) // seq: Seq[T]
+    seq.foldLeft(new StringBuilder())(_ append _)
+
+    // After
+    seq.mkString
+    seq.mkString(prefix, separator, "")
+
+The latter approach is cleaner and potentially faster,
+because it uses a single `StringBuilder` under the hood.
+
+Other possible methods are:
+`reduceLeft`, `reduceRight`, `foldLeft`, `foldRight`.
+
+Also applicable to: `Set`, `Option`, `Iterator`.
+
+
+## 5. Sets
+Most of the tips for sequences are applicable to sets as well.
+Additionally, there are several set-specific tips available.
+Don’t use sameElements to compare unordered collections
+
+    // Before
+    set1.sameElements(set2)
+
+    // After
+    set1 == set2
+
+This rule was introduced earlier (for sequences), yet for sets the
+rationale is even more sound.
+
+The `sameElements` method might return indeterministic results for
+unordered collections, because this method respects order of elements,
+while we cannot rely on the order in a set.
+
+Classes that explicitly guarantee predictable iteration order
+(like `LinkedHashSet`) are exceptions from this rule.
+
+Also applicable to: `Map`.
+
+
+*Don’t compute set intersection manually*
+
+    // Before
+    set1.filter(set2.contains)
+    set1.filter(set2)
+
+    // After
+    set1.intersect(set2) // or set1 & set2
+
+The latter expression is more clear and concise
+(while performance is the same).
+
+This transformation can be performed on sequences,
+however we should keep in mind, that in such a case,
+duplicate elements will be handled differently.
+
+
+*Don’t compute set difference manually*
+
+    // Before
+    set1.filterNot(set2.contains)
+    set1.filterNot(set2)
+
+    // After
+    set1.diff(set2) // or set1 &~ set2
+
+Again, the updated expression is more clear and concise
+(while performance is the same).
+
+The transformation is potentially applicable to sequences,
+though we should consider duplicate elements.
+
+
+## 6. Options
+Technically, `Option` is not a part of the Scala Collections,
+however it provides similar interface (with monadic methods, etc.)
+and behaves like a special kind of collection that may or may not
+hold some value.
+
+Many of the tips for sequences are also applicable to options. Besides,
+here are dedicated tips, that are based on `Option` API.
+
+### 6.1 Value
+*Don’t compare option values with None*
+
+    // Before
+    option == None
+    option != None
+
+    // After
+    option.isEmpty
+    option.isDefined
+
+While such a comparison is fully legitimate, we have a more straightforward
+way to check whether option is defined.
+
+Another advantage of this simplification, is that if you ever decide to
+change the type from `Option[T]` to just `T`, scalac will compile the former
+expression (yielding only a warning), while compilation of the latter one
+will result in a righteous error.
+
+
+*Don’t compare option values with Some*
+
+    // Before
+    option == Some(v)
+    option != Some(v)
+
+    // After
+    option.contains(v)
+    !option.contains(v)
+
+This tip is a complement to the previous one.
+
+
+*Don’t rely on instance type to check value existence*
+
+    // Before
+    option.isInstanceOf[Some[_]]
+
+    // After
+    option.isDefined
+
+There’s simply no need for such trickery.
+
+
+*Don’t resort to pattern matching to check value existence*
+
+    // Before
+    option match {
+        case Some(_) => true
+        case None => false
+    }
+
+    option match {
+        case Some(_) => false
+        case None => true
+    }
+
+    // After
+    option.isDefined
+    option.isEmpty
+
+Again, while the former expression is technically correct, there’s no
+justification for such an extravagance. Besides,
+the simplified expression will work faster.
+
+Also applicable to: `Seq`, `Set`.
+
+
+*Don’t negate value existence-related properties*
+
+    // Before
+    !option.isEmpty
+    !option.isDefined
+    !option.nonEmpty
+
+    // After
+    seq.isDefined
+    seq.isEmpty
+    seq.isEmpty
+
+Rationale is the same as the one for sequences — simple property adds less
+visual clutter than a compound expression.
+
+Note that we have the synonyms: `isDefined` (option-specific) and `nonEmpty`
+(sequence-specific). It might be reasonable to prefer the former one,
+to distinguish options from sequences.
+
+
+### 6.2 Null
+*Don’t compare value with `null` explicitly to construct an `Option`*
+
+    // Before
+    if (v != null) Some(v) else None
+
+    // After
+    Option(v)
+
+We have a special, concise syntax for that.
+
+
+*Don’t provide `null` as an explicit alternative*
+
+    // Before
+    option.getOrElse(null)
+
+    // After
+    option.orNull
+
+We can rely on the predefine method in such a case,
+so the expression will become shorter.
+
+
+### 6.3 Processing
+
+It’s possible to single out a groups of tips that are related to how `Option`
+value is processed.
+
+As `Option`‘s API [documentation](https://www.scala-lang.org/api/current/index.html#scala.Option)
+says that “the most idiomatic way to use an
+`Option` instance is to treat it as a collection or monad and use
+map, flatMap, filter, or foreach”, the basic principle here is to
+avoid “check & get” chains, implemented either via
+if statement or via pattern matching.
+
+The goal is conciseness and robustness, the “monadic” code is:
+
+  * more concise and intelligible,
+  * safeguarded against `NoSuchElementException` nor `MatchError`
+  exceptions at runtime.
+
+This rationale is common for all the following cases.
+
+
+*Don’t emulate `getOrElse`*
+
+    // Before
+    if (option.isDefined) option.get else z
+
+    option match {
+      case Some(it) => it
+      case None => z
+    }
+
+    // After
+    option.getOrElse(z)
+
+
+*Don’t emulate `orElse`*
+
+    if (option1.isDefined) option1 else option2
+
+    option1 match {
+      case Some(it) => Some(it)
+      case None => option2
+    }
+
+    // After
+    option1.orElse(option2)
+
+
+*Don’t emulate `exists`*
+
+    // Before
+    option.isDefined && p(option.get)
+
+    if (option.isDefined) p(option.get) else false
+
+    option match {
+      case Some(it) => p(it)
+      case None => false
+    }
+
+    // After
+    option.exists(p)
+
+
+*Don’t emulate `forall`*
+
+    // Before
+    option.isEmpty || (option.isDefined && p(option.get))
+
+    if (option.isDefined) p(option.get) else true
+
+    option match {
+      case Some(it) => p(it)
+      case None => true
+    }
+
+    // After
+    option.forall(p)
+
+
+*Don’t emulate `contains`*
+
+    // Before
+    option.isDefined && option.get == x
+
+    if (option.isDefined) option.get == x else false
+
+    option match {
+      case Some(it) => it == x
+      case None => false
+    }
+
+    // After
+    option.contains(x)
+
+
+*Don’t emulate `foreach`*
+
+    // Before
+    if (option.isDefined) f(option.get)
+
+    option match {
+      case Some(it) => f(it)
+      case None =>
+    }
+
+    // After
+    option.foreach(f)
+
+
+*Don’t emulate `filter`*
+
+    // Before
+    if (option.isDefined && p(option.get)) option else None
+
+    option match {
+      case Some(it) && p(it) => Some(it)
+      case _ => None
+    }
+
+    // After
+    option.filter(p)
+
+
+*Don’t emulate `map`*
+
+    // Before
+    if (option.isDefined) Some(f(option.get)) else None
+
+    option match {
+      case Some(it) => Some(f(it))
+      case None => None
+    }
+
+    // After
+    option.map(f)
+
+
+*Don’t emulate `flatMap`*
+
+    // Before (f: A => Option[B])
+    if (option.isDefined) f(option.get) else None
+
+    option match {
+      case Some(it) => f(it)
+      case None => None
+    }
+
+    // After
+    option.flatMap(f)
+
+
+### 6.4 Rewriting
+*Convert `map` with `getOrElse` to fold*
+
+    // Before
+    option.map(f).getOrElse(z)
+
+    // After
+    option.fold(z)(f)
+
+Those expressions are semantically equivalent (in both cases `z` is computed
+lazily, on demand), yet the latter expression is more concise.
+The transformation may sometimes require an additional type annotation
+(because of the way how Scala’s type inference works), and, in such cases,
+the former expression might be preferable.
+
+Keep in mind that this particular simplification is somehow
+[controversial](https://www.reddit.com/r/scala/comments/2z411u/scala_collections_tips_and_tricks/cqiip08/),
+because the latter expression looks more obscure, especially if you
+not accustomed to it.
+
+
+*Don’t emulate `exists`*
+
+    // Before
+    option.map(p).getOrElse(false)
+
+    // After
+    option.exists(p)
+
+We presented a rather similar rule for sequences
+(which is also directly applicable to options).
+This transformation is a special case with `getOrElse` call.
+
+
+*Don’t emulate `flatten`*
+
+    // Before (option: Option[Option[T]])
+    option.map(_.get)
+    option.getOrElse(None)
+
+    // After
+    option.flatten
+
+The latter expression looks cleaner.
+
+
+*Don’t convert option to sequence manually*
+
+    // Before
+    option.map(Seq(_)).getOrElse(Seq.empty)
+    option.getOrElse(Seq.empty) // option: Option[Seq[T]]
+
+    // After
+    option.toSeq
+
+There’s a special method for doing that, which is more concise and,
+less computationally-expensive.

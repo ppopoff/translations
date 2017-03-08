@@ -242,10 +242,12 @@ degrade code performance (especially, within loops).
     seq.isEmpty
 
 Simple property adds less visual clutter than a compound expression.
+
 Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t compute length for emptiness check*
+
     // Before
     seq.length > 0
     seq.length != 0

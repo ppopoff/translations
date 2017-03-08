@@ -295,7 +295,7 @@ we’re dealing with infinite streams.
 
 
 ### 4.3 Equality
-*Don’t rely on == to compare array contents*
+*Don’t rely on `==` to compare array contents*
 
     // Before
     array1 == array2
@@ -304,6 +304,7 @@ we’re dealing with infinite streams.
     array1.sameElements(array2)
 
 Equality check always produces `false` for different array instances.
+
 Also applicable to: `Iterator`.
 
 
@@ -498,6 +499,7 @@ Be careful with the method arguments
 
 Again, the latter expression is cleaner and
 possibly faster (especially, for sets).
+
 Also applicable to: `Set`, `Option`, `Iterator`.
 
 
@@ -517,7 +519,9 @@ Obviously, when we need to know whether a predicate holds for some
 elements of the collection, counting the number of elements which
 satisfy the predicate is redundant.
 The optimized expressions looks cleaner and performs better.
+
 The predicate `p` must be pure.
+
 Also applicable to: `Set`, `Map`, `Iterator`.
 
 
@@ -646,7 +650,7 @@ The advantage is clarity and conciseness.
 Other possible methods are:
 `reduceLeft`, `reduceRight`, `foldLeft`, `foldRight`.
 
-The second transformation might be replaced with the first when z is 0.
+The second transformation might be replaced with the first when `z` is `0`.
 
 Also applicable to: `Set`, `Iterator`.
 
@@ -698,7 +702,7 @@ Rationale is the same as in the previous tips.
 Also applicable to: `Set`, `Iterator`.
 
 
-*Don’t emulate forall*
+*Don’t emulate `forall`*
 
     // Before
     seq.foldLeft(true)((x, y) => x && p(y))
@@ -751,7 +755,7 @@ formulation when we have the concise built-in method
 Also applicable to: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate filter*
+*Don’t emulate `filter`*
 
     // Before
     seq.foldLeft(Seq.empty)((acc, x) => if (p(x)) acc :+ x else acc)
@@ -765,7 +769,7 @@ Rationale is the same as in the previous tip.
 Also applicable to: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate reverse*
+*Don’t emulate `reverse`*
 
     // Before
     seq.foldLeft(Seq.empty)((acc, x) => x +: acc)
@@ -809,7 +813,7 @@ This tip is not actually collection-related at all. However, because
 are so ubiquitous in Scala collection API, the tip is especially handy.
 
 
-*Convert `flatMap` with partial function to collect*
+*Convert `flatMap` with partial function to `collect`*
 
     // Before
     seq.flatMap {
@@ -1063,7 +1067,7 @@ Also applicable to: `Set`, `Option`, `Iterator`.
 Again, there’s no need to emulate built-in method manually.
 Besides improved clarity, we can skip the creation of an intermediate collection.
 
-Also applicable to: Set, Option, Iterator.
+Also applicable to: `Set`, `Option`, `Iterator`.
 
 
 *Don’t use `map` when result is ignored*
@@ -1078,7 +1082,7 @@ When side effect is all that is needed,
 there’s no justification for calling `map`.
 Such a call is misleading (and less efficient).
 
-Also applicable to: Set, Option, Map, Iterator.
+Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t use `unzip` to extract a single component*
@@ -1104,11 +1108,11 @@ This recipe is subdivided into three parts
 
 1. Transformation reduces collection to a single value.
 
-    // Before
-    seq.map(f).flatMap(g).filter(p).reduce(???)
+      // Before
+      seq.map(f).flatMap(g).filter(p).reduce(???)
 
-    // After
-    seq.view.map(f).flatMap(g).filter(p).reduce(???)
+      // After
+      seq.view.map(f).flatMap(g).filter(p).reduce(???)
 
 In place of `reduce` might be any method that reduces collection to
 a single value, for example:

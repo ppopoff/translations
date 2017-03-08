@@ -1,6 +1,9 @@
 Scala Collections Tips and Tricks
 =================================
 
+<img src="https://pavelfatin.com/images/scala-collections.jpg"
+     style="float:left;">
+
 Library article presents a list of simplifications and optimizations
 of typical [Scala Collections API](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
@@ -1383,7 +1386,7 @@ Many of the tips for sequences are also applicable to options. Besides,
 here are dedicated tips, that are based on `Option` API.
 
 ### 6.1 Value
-*Don’t compare option values with None*
+*Don’t compare option values with `None`*
 
     // Before
     option == None
@@ -1402,7 +1405,7 @@ expression (yielding only a warning), while compilation of the latter one
 will result in a righteous error.
 
 
-*Don’t compare option values with Some*
+*Don’t compare option values with `Some`*
 
     // Before
     option == Some(v)
@@ -1504,7 +1507,7 @@ says that “the most idiomatic way to use an
 `Option` instance is to treat it as a collection or monad and use
 map, flatMap, filter, or foreach”, the basic principle here is to
 avoid “check & get” chains, implemented either via
-if statement or via pattern matching.
+`if` statement or via pattern matching.
 
 The goal is conciseness and robustness, the “monadic” code is:
 
@@ -1647,7 +1650,7 @@ This rationale is common for all the following cases.
 
 
 ### 6.4 Rewriting
-*Convert `map` with `getOrElse` to fold*
+*Convert `map` with `getOrElse` to `fold`*
 
     // Before
     option.map(f).getOrElse(z)
@@ -1738,7 +1741,7 @@ There’s no need to produce an intermediate `Option` value when a
 raw value is needed.
 
 
-*Don’t use lift instead of get*
+*Don’t use `lift` instead of `get`*
 
     // Before
     map.lift(k)
@@ -1842,7 +1845,7 @@ Another option is to define a simple helper method, like:
     def get(k: T) = if (p(k)) map.get(k) else None
 
 
-*Be careful with mapValues*
+*Be careful with `mapValues`*
 
     // Before
     map.mapValues(f)

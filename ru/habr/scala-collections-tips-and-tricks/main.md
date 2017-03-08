@@ -1137,7 +1137,7 @@ kind of `Iterator`, that allows re-iteration:
 
 To go from a collection to its view, we use the `view` method.
 
-2. Transformation produces a collection of the same class.
+2) Transformation produces a collection of the same class.
 
 It’s possible to use views when the final result of transformation is still a
 collection — the `force` method will build a collection of the original class
@@ -1164,7 +1164,7 @@ representation (by calling `view` and `force`).
 While view-based approach is more universal, in this particular case you may
 prefer `withFilter` method because of the conciseness.
 
-3. Transformation creates a collection of different class.
+3) Transformation creates a collection of different class.
 
     // Before
     seq.map(f).flatMap(g).filter(p).toList

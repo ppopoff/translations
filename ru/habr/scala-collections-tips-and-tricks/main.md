@@ -1273,7 +1273,7 @@ Also applicable to: `Set`, `Option`, `Iterator`.
     seq.toVector
 
 Because `Seq(...)` creates a strict collection (namely, [Vector](https://www.scala-lang.org/api/current/index.html#scala.collection.immutable.Vector)),
-we may be tempted to use toSeq to convert a non-strict entity
+we may be tempted to use `toSeq` to convert a non-strict entity
 (like `Stream`, `Iterator`, or “view”) to a strict collection. However,
 `TraversableOnce.toSeq` returns a `Stream` under the hood, which is a lazy
 collection, and that might result in hard-to-find bugs or performance problems.
@@ -1293,7 +1293,7 @@ the stream is already closed.
 To clarify the intent, it’s better to write `toStream` explicitly, or,
 if we need a strict collection, after all, to use `toVector` instead of `toSeq`.
 
-*Don’t convert to String manually*
+*Don’t convert to `String` manually*
 
     // Before (seq: Seq[String])
     seq.reduce(_ + _)
@@ -1318,7 +1318,8 @@ Also applicable to: `Set`, `Option`, `Iterator`.
 ## 5. Sets
 Most of the tips for sequences are applicable to sets as well.
 Additionally, there are several set-specific tips available.
-Don’t use sameElements to compare unordered collections
+
+*Don’t use `sameElements` to compare unordered collections*
 
     // Before
     set1.sameElements(set2)

@@ -1,5 +1,8 @@
-Scala Collections Tips and Tricks
-=================================
+Секреты и трюки Scala коллекций
+===============================
+
+<img src="https://pavelfatin.com/images/scala-collections.jpg"
+     style="float:left">
 
 Представляю вашему вниманию перевод статьи
 [Павла Фатина](https://pavelfatin.com/about)
@@ -10,103 +13,103 @@ Scala Collections Tips and Tricks
 для IntelliJ IDEA.
 
 
-Library article presents a list of simplifications and optimizations
-of typical [Scala Collections API](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
+Данная статья представляет собой набор оптимизацийи упрощений для типичного
+[интерфейса коллекций Scala](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
-<img src="https://pavelfatin.com/images/scala-collections.jpg"
-     style="float:left">
-
-
-Some of the tips rest upon subtle implementation details,
-though most of the recipes are just common sense transformations that,
-in practice, are often overlooked.
-
-The list is inspired by my efforts to devise practical
-[Scala Collections inspections](https://youtrack.jetbrains.com/oauth?state=%2Fissues%2FSCL%3Fq%3Dby%253A%2BPavel.Fatin%2Bcollection%2Border%2Bby%253A%2Bcreated)
-for the [IntelliJ Scala plugin](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA).
-We’re now in process of implementing those inspections, so if you use the
-plugin in IDEA, you’ll automatically benefit from static code analysis.
-
-Nevertheless, the recipes are valuable by themselves and can help
-you to deepen your understanding of Scala Collections
-and to make your code faster and cleaner.
+Некоторые советы основаны на тонкостях реализации библиотеки коллекций, однако
+TODO:
+большинство рецептов -- являются преобразованиями зравого смысла, которые
+на практике часто упускаются из виду.
 
 
-**Contents:**
+Этот список вдохновлен моими попытками разработать практичные
+[инспекции для Scala коллекций](https://youtrack.jetbrains.com/oauth?state=%2Fissues%2FSCL%3Fq%3Dby%253A%2BPavel.Fatin%2Bcollection%2Border%2Bby%253A%2Bcreated)
+для [Scala плагина IntelliJ](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA).
+Сейчас мы в процессе осуществления данных инспекций,
+так что если вы используете этот плагин в IDEA
+вы автоматически получаете пользу от статического анализа кода
 
-  1. Legend
-  2. Composition
-  3. Side effects
-  4. Sequences
-    4.1. Creation
+Тем не менее, эти рецепты ценны сами по себе и могут помочь вам углубить ваше
+понимание стандартной библиотеки коллекций Scala и сделать ваш код быстрее и
+чище
+
+
+**Содержание:**
+
+  1. Ленегда
+  2. Композиция
+  3. Побочные эффекты
+  4. Последоваельности (Sequences)
+    4.1. Создание
     4.2. Length
-    4.3. Equality
-    4.4. Indexing
-    4.5. Existence
-    4.6. Filtering
-    4.7. Sorting
-    4.8. Reduction
-    4.9. Matching
-    4.10. Rewriting
-  5. Sets
+    4.3. Равенство
+    4.4. Индексация
+    4.5. Существование
+    4.6. Фильтрация
+    4.7. Сортировка
+    4.8. Сверктка
+    4.9. Сопоставление
+    4.10. Переписываем
+  5. Множества (Sets)
   6. Options
-    6.1. Value
+    6.1. Значение
     6.2. Null
-    6.3. Processing
-    6.4. Rewriting
+    6.3. Обработка
+    6.4. Переписываем
   7. Maps
-  8. Supplement
+  8. Дополнение
 
 Все примеры кода доступны в
 [репозитории на GitHub](https://github.com/pavelfatin/scala-collections-tips-and-tricks).
 
 
-## 1. Legend
-To make code examples more comprehensible, I
-adhered to the following notation conventions:
+## 1. Легенда
+Чтобы сделать примеры кода более понятными, я придерживался следующих условных
+обозначений:
 
-  * `seq` — an instance of `Seq`-based collection, like `Seq(1, 2, 3)`
-  * `set` — an instance of `Set`, for example `Set(1, 2, 3)`
-  * `array` — an array, e. g. `Array(1, 2, 3)`
-  * `option` — an instance of `Option`, for example, `Some(1)`
-  * `map` — an instance of `Map`, like `Map(1 -> "foo", 2 -> "bar")`
-  * `???` — an arbitrary expression
-  * `p` — a predicate function with type `T => Boolean`, like `_ > 2`
-  * `n` — an integer value
-  * `i` — an integer index
-  * `f`, `g` — simple functions, `A => B`
-  * `x`, `y` — some arbitrary values
-  * `z` — initial or default value
-  * `P` — a pattern
+  * `seq` — экземпляр основанной на `Seq` колекции, вроде `Seq(1, 2, 3)`
+  * `set` — экземпляр `Set`, например `Set(1, 2, 3)`
+  * `array` — массив, такой как `Array(1, 2, 3)`
+  * `option` — экземпляр `Option`, например, `Some(1)`
+  * `map` — экземпляр `Map`, подобный `Map(1 -> "foo", 2 -> "bar")`
+  * `???` — произвольное выражение
+  * `p` — предикат функции типа `T => Boolean`, например `_ > 2`
+  * `n` — целочисленное значение
+  * `i` — целочисленный индекс
+  * `f`, `g` — простые функции, `A => B`
+  * `x`, `y` — некоторые произвольные значения
+  * `z` — начальное, или значение по-умолчанию
+  * `P` — паттерн
 
-## 2. Composition
-Keep in mind that although all the recipes are isolated and
-self-contained, we can compose them to iteratively transform
-more advanced expressions, for example:
+## 2. Композиция
+Имейте в виду что несмотря на то что все рецепты изолированны и самостоятельны
+мы можем соединять (compose), итеративно превращая в более прогрессивные
+выражения, например:
 
     seq.filter(_ == x).headOption != None
 
-    // Via seq.filter(p).headOption -> seq.find(p)
+    // seq.filter(p).headOption -> seq.find(p)
 
     seq.find(_ == x) != None
 
-    // Via option != None -> option.isDefined
+    // option != None -> option.isDefined
 
     seq.find(_ == x).isDefined
 
-    // Via seq.find(p).isDefined -> seq.exists(p)
+    // seq.find(p).isDefined -> seq.exists(p)
 
     seq.exists(_ == x)
 
-    // Via seq.exists(_ == x) -> seq.contains(x)
+    // seq.exists(_ == x) -> seq.contains(x)
 
     seq.contains(x)
 
+TODO
 So, we can rely on “substitution model of recipe application” (by analogy
 with [SICP](https://mitpress.mit.edu/sicp/full-text/sicp/book/node10.html))
 to simplify complex expressions.
 
-## 3. Side Effects
+## 3. Побочные эффекты
 “Side effect” is an essential concept that should be reviewed
 before enumerating the actual transformations.
 
@@ -225,7 +228,7 @@ Thus, by making collection emptiness apparent at compile time,
 we could save either heap space (by reusing empty collection instances)
 or CPU cycles (otherwise wasted on runtime length checks).
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 ### 4.2 Length
 *Prefer `length` to `size` for arrays*
@@ -256,7 +259,7 @@ degrade code performance (especially, within loops).
 
 Simple property adds less visual clutter than a compound expression.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t compute length for emptiness check*
@@ -281,7 +284,7 @@ exact value is not really required.
 Additionally, keep in mind that `.length` call on an infinite stream will
 never complete, yet we can always verify stream emptiness directly.
 
-Also applicable to: `Set`, `Map`.
+Также применимо к: `Set`, `Map`.
 
 
 *Don’t compute full length for length matching*
@@ -317,8 +320,9 @@ we’re dealing with infinite streams.
     array1.sameElements(array2)
 
 Equality check always produces `false` for different array instances.
+Проверка на равество всегда производит `false` для различных экземпляров массивов.
 
-Also applicable to: `Iterator`.
+Также применимо к: `Iterator`.
 
 
 *Don’t check equality between collections in different categories*
@@ -486,7 +490,7 @@ performance might be different as night and day,
 because sets offer close to `O(1)` lookups
 (due to internal indexing, which is left unused within `exists` calls).
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 *Be careful with `contains` argument type*
 
@@ -513,7 +517,7 @@ Be careful with the method arguments
 Again, the latter expression is cleaner and
 possibly faster (especially, for sets).
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t count occurrences to check existence*
@@ -535,7 +539,7 @@ The optimized expressions looks cleaner and performs better.
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Map`, `Iterator`.
 
 
 *Don’t resort to filtering to check existence*
@@ -558,7 +562,7 @@ The potential performance gain is less significant for lazy collections
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 ### 4.6 Filtering
@@ -573,7 +577,7 @@ Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 The latter expression is syntactically simpler
 (while semantically they are equal).
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t resort to filtering to count elements*
@@ -587,7 +591,7 @@ Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
 The call to `filter` creates an intermediate collection
 (which is not really needed) that takes heap space and loads GC.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t use filtering to find first occurrence*
@@ -602,7 +606,7 @@ Unless `seq` is a lazy collection (like `Stream`),
 filtering will find all occurrences (and create a temporary collection),
 while only the first one is needed.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 ### 4.7 Sorting
@@ -665,7 +669,7 @@ Other possible methods are:
 
 The second transformation might be replaced with the first when `z` is `0`.
 
-Also applicable to: `Set`, `Iterator`.
+Также применимо к: `Set`, `Iterator`.
 
 
 *Don’t calculate product manually*
@@ -682,7 +686,7 @@ Rationale is the same as in the previous tip.
 
 The second transformation might be replaced with the first when z is 1.
 
-Also applicable to: `Set`, `Iterator`.
+Также применимо к: `Set`, `Iterator`.
 
 
 *Don’t search for the smallest element manually*
@@ -697,7 +701,7 @@ Also applicable to: `Set`, `Iterator`.
 
 Rationale is the same as in the previous tips.
 
-Also applicable to: `Set`, `Iterator`.
+Также применимо к: `Set`, `Iterator`.
 
 
 *Don’t search for the largest element manually*
@@ -712,7 +716,7 @@ Also applicable to: `Set`, `Iterator`.
 
 Rationale is the same as in the previous tips.
 
-Also applicable to: `Set`, `Iterator`.
+Также применимо к: `Set`, `Iterator`.
 
 
 *Don’t emulate `forall`*
@@ -728,7 +732,7 @@ The goal of the simplification is clarity and conciseness.
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Option` (for the second line), `Iterator`.
+Также применимо к: `Set`, `Option` (for the second line), `Iterator`.
 
 
 *Don’t emulate `exists`*
@@ -747,7 +751,7 @@ and it can work with infinite sequences.
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Option` (for the second line), `Iterator`.
+Также применимо к: `Set`, `Option` (for the second line), `Iterator`.
 
 
 *Don’t emulate `map`*
@@ -765,7 +769,7 @@ While it’s surely didactic, there’s no need to resort to such a
 formulation when we have the concise built-in method
 (which is also faster, because it uses a simple `while` loop under the hood).
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t emulate `filter`*
@@ -779,7 +783,7 @@ Also applicable to: `Set`, `Option`, `Iterator`.
 
 Rationale is the same as in the previous tip.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t emulate `reverse`*
@@ -793,11 +797,10 @@ Also applicable to: `Set`, `Option`, `Iterator`.
 
 Again, the built-in method is cleaner and faster.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 ### 4.9 Matching
-
 Here are several dedicated tips that are related to Scala’s
 [pattern matching](http://docs.scala-lang.org/tutorials/tour/pattern-matching.html)
 and [partial functions](https://www.scala-lang.org/api/current/index.html#scala.PartialFunction).
@@ -841,7 +844,7 @@ are so ubiquitous in Scala collection API, the tip is especially handy.
 
 The updated expression produces the same result, but looks much simpler.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Convert `match` to `collect` when the result is a collection*
@@ -865,7 +868,7 @@ the explicit default `case` branch.
 
 Personally, I often use this trick with `Option` rather than sequences per se.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t emulate collectFirst*
@@ -881,7 +884,7 @@ which also works faster on non-lazy collections.
 
 The partial function must be pure.
 
-Also applicable to: `Set`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Map`, `Iterator`.
 
 
 ### 4.10 Rewriting
@@ -901,7 +904,7 @@ so the result will be `seq.view.filter(p1).filter(p2).force`.
 
 The predicates `p1` and `p2` must be pure.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Merge consecutive `map` calls*
@@ -920,7 +923,7 @@ so the result will be `seq.view.map(f).map(g).force`.
 
 The functions `f` and `g` must be pure.
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Do sorting after filtering*
@@ -990,7 +993,7 @@ For linear sequences all we gain is clear intent and conciseness.
 For indexed sequences, however,
 we may expect a potential performance improvements.
 
-Also applicable to: `Set`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Map`, `Iterator`.
 
 
 *Don’t emulate `splitAt`*
@@ -1005,7 +1008,7 @@ Also applicable to: `Set`, `Map`, `Iterator`.
 The optimized expression performs faster on linear sequences
 (like `List` or `Stream`), because it computes the results in a single pass.
 
-Also applicable to: `Set`, `Map`.
+Также применимо к: `Set`, `Map`.
 
 
 *Don’t emulate `span`*
@@ -1022,7 +1025,7 @@ instead of twice.
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Map`, `Iterator`.
 
 
 *Don’t emulate `partition`*
@@ -1038,7 +1041,7 @@ Again, the benefit is a single-pass computation.
 
 The predicate `p` must be pure.
 
-Also applicable to: `Set`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Map`, `Iterator`.
 
 
 *Don’t emulate `takeRight`*
@@ -1066,7 +1069,7 @@ The latter expression is more concise and potentially more efficient
 There’s no need to flatten collections manually when we have a dedicated
 built-in method for doing exactly that.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t emulate `flatMap`*
@@ -1080,7 +1083,7 @@ Also applicable to: `Set`, `Option`, `Iterator`.
 Again, there’s no need to emulate built-in method manually.
 Besides improved clarity, we can skip the creation of an intermediate collection.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Don’t use `map` when result is ignored*
@@ -1095,7 +1098,7 @@ When side effect is all that is needed,
 there’s no justification for calling `map`.
 Such a call is misleading (and less efficient).
 
-Also applicable to: `Set`, `Option`, `Map`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
 *Don’t use `unzip` to extract a single component*
@@ -1111,7 +1114,7 @@ when only a single component is required.
 
 Other possible method: `unzip3`.
 
-Also applicable to: Set, Option, Map, Iterator.
+Также применимо к: Set, Option, Map, Iterator.
 
 
 *Don’t create temporary collections*
@@ -1213,7 +1216,7 @@ Views are especially efficient when collection size is relatively large.
 All the functions (like `f` and `g`) and predicates (`p`) must be pure
 (because view might delay, skip or reorder computations).
 
-Also applicable to: `Set`, `Map`.
+Также применимо к: `Set`, `Map`.
 
 
 *Use assignment operators to reassign a sequence*
@@ -1254,7 +1257,7 @@ There’s also a special syntax for lists and streams:
 
 The optimized statements are more concise.
 
-Also applicable to: `Set`, `Map`, `Iterator` (with operator specifics in mind).
+Также применимо к: `Set`, `Map`, `Iterator` (with operator specifics in mind).
 
 
 *Don’t convert collection type manually*
@@ -1273,7 +1276,7 @@ cleaner and faster.
 If you need to transform or filter values in the course of the conversion,
 consider using views or similar techniques, as described above.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 *Be careful with `toSeq` on non-strict collections*
@@ -1325,7 +1328,7 @@ because it uses a single `StringBuilder` under the hood.
 Other possible methods are:
 `reduceLeft`, `reduceRight`, `foldLeft`, `foldRight`.
 
-Also applicable to: `Set`, `Option`, `Iterator`.
+Также применимо к: `Set`, `Option`, `Iterator`.
 
 
 ## 5. Sets
@@ -1350,7 +1353,7 @@ while we cannot rely on the order in a set.
 Classes that explicitly guarantee predictable iteration order
 (like `LinkedHashSet`) are exceptions from this rule.
 
-Also applicable to: `Map`.
+Также применимо к: `Map`.
 
 
 *Don’t compute set intersection manually*
@@ -1460,7 +1463,7 @@ Again, while the former expression is technically correct, there’s no
 justification for such an extravagance. Besides,
 the simplified expression will work faster.
 
-Also applicable to: `Seq`, `Set`.
+Также применимо к: `Seq`, `Set`.
 
 
 *Don’t negate value existence-related properties*
@@ -1507,11 +1510,13 @@ We can rely on the predefine method in such a case,
 so the expression will become shorter.
 
 
-### 6.3 Processing
+### 6.3 Обработка
 
+TODO
 It’s possible to single out a groups of tips that are related to how `Option`
 value is processed.
 
+TODO
 As `Option`‘s API [documentation](https://www.scala-lang.org/api/current/index.html#scala.Option)
 says that “the most idiomatic way to use an
 `Option` instance is to treat it as a collection or monad and use
@@ -1519,18 +1524,20 @@ map, flatMap, filter, or foreach”, the basic principle here is to
 avoid “check & get” chains, implemented either via
 `if` statement or via pattern matching.
 
+TODO
 The goal is conciseness and robustness, the “monadic” code is:
 
   * more concise and intelligible,
   * safeguarded against `NoSuchElementException` nor `MatchError`
   exceptions at runtime.
 
+TODO
 This rationale is common for all the following cases.
 
 
-*Don’t emulate `getOrElse`*
+#### Не эмулируйте `getOrElse`
 
-    // Before
+    // До
     if (option.isDefined) option.get else z
 
     option match {
@@ -1538,12 +1545,13 @@ This rationale is common for all the following cases.
       case None => z
     }
 
-    // After
+    // После
     option.getOrElse(z)
 
 
-*Don’t emulate `orElse`*
+#### Не эмулируйте `orElse`
 
+    // До
     if (option1.isDefined) option1 else option2
 
     option1 match {
@@ -1551,13 +1559,13 @@ This rationale is common for all the following cases.
       case None => option2
     }
 
-    // After
+    // После
     option1.orElse(option2)
 
 
-*Don’t emulate `exists`*
+#### Не эмулируйте `exists`
 
-    // Before
+    // До
     option.isDefined && p(option.get)
 
     if (option.isDefined) p(option.get) else false
@@ -1567,13 +1575,13 @@ This rationale is common for all the following cases.
       case None => false
     }
 
-    // After
+    // После
     option.exists(p)
 
 
-*Don’t emulate `forall`*
+#### Не эмулируйте `forall`
 
-    // Before
+    // До
     option.isEmpty || (option.isDefined && p(option.get))
 
     if (option.isDefined) p(option.get) else true
@@ -1583,13 +1591,13 @@ This rationale is common for all the following cases.
       case None => true
     }
 
-    // After
+    // После
     option.forall(p)
 
 
-*Don’t emulate `contains`*
+#### Не эмулируйте `contains`
 
-    // Before
+    // До
     option.isDefined && option.get == x
 
     if (option.isDefined) option.get == x else false
@@ -1599,13 +1607,13 @@ This rationale is common for all the following cases.
       case None => false
     }
 
-    // After
+    // После
     option.contains(x)
 
 
-*Don’t emulate `foreach`*
+#### Не эмулируйте `foreach`
 
-    // Before
+    // До
     if (option.isDefined) f(option.get)
 
     option match {
@@ -1613,13 +1621,13 @@ This rationale is common for all the following cases.
       case None =>
     }
 
-    // After
+    // После
     option.foreach(f)
 
 
-*Don’t emulate `filter`*
+#### Не эмулируйте `filter`
 
-    // Before
+    // До
     if (option.isDefined && p(option.get)) option else None
 
     option match {
@@ -1627,13 +1635,13 @@ This rationale is common for all the following cases.
       case _ => None
     }
 
-    // After
+    // После
     option.filter(p)
 
 
-*Don’t emulate `map`*
+#### Не эмулируйте `map`*
 
-    // Before
+    // До
     if (option.isDefined) Some(f(option.get)) else None
 
     option match {
@@ -1641,13 +1649,13 @@ This rationale is common for all the following cases.
       case None => None
     }
 
-    // After
+    // После
     option.map(f)
 
 
-*Don’t emulate `flatMap`*
+#### Не эмулируйте `flatMap`
 
-    // Before (f: A => Option[B])
+    // До (f: A => Option[B])
     if (option.isDefined) f(option.get) else None
 
     option match {
@@ -1655,91 +1663,90 @@ This rationale is common for all the following cases.
       case None => None
     }
 
-    // After
+    // После
     option.flatMap(f)
 
 
-### 6.4 Rewriting
-*Convert `map` with `getOrElse` to `fold`*
+### 6.4 Переписываем
+#### Приведите цепочку из `map` и `getOrElse` в `fold`*
 
-    // Before
+    // До
     option.map(f).getOrElse(z)
 
-    // After
+    // После
     option.fold(z)(f)
 
-Those expressions are semantically equivalent (in both cases `z` is computed
-lazily, on demand), yet the latter expression is more concise.
-The transformation may sometimes require an additional type annotation
-(because of the way how Scala’s type inference works), and, in such cases,
-the former expression might be preferable.
+Данные выражения семантически эквиваленты (в обоих случаях `z` будет вычислен
+лениво, по требованию), однако последнее выражение короче.
+Трансформация может требовать дополнительного указания типа (из-за того что
+вывод типов в Scala так работает), и, в подобных случаях, предыдущее выражение
+предпочтительнее.
 
-Keep in mind that this particular simplification is somehow
-[controversial](https://www.reddit.com/r/scala/comments/2z411u/scala_collections_tips_and_tricks/cqiip08/),
-because the latter expression looks more obscure, especially if you
-not accustomed to it.
+Имейте в виду, что данное упрощение весьма
+[противоречиво](https://www.reddit.com/r/scala/comments/2z411u/scala_collections_tips_and_tricks/cqiip08/),
+в виду того что последнее выражение выглядит менее ясно, особенно если вы к
+нему не привыкли.
 
 
-*Don’t emulate `exists`*
+#### Не имитируйте `exists`
 
-    // Before
+    // До
     option.map(p).getOrElse(false)
 
-    // After
+    // После
     option.exists(p)
 
-We presented a rather similar rule for sequences
-(which is also directly applicable to options).
-This transformation is a special case with `getOrElse` call.
+Мы представили довольно похожее правило для последовательностей (которое
+также применимо к optionам).
+Данная трансформация является специальным случаем вызова `getOrElse`.
 
 
-*Don’t emulate `flatten`*
+#### Не эмулируйте `flatten`
 
-    // Before (option: Option[Option[T]])
+    // До (option: Option[Option[T]])
     option.map(_.get)
     option.getOrElse(None)
 
-    // After
+    // После
     option.flatten
 
-The latter expression looks cleaner.
+Последнее выражение смотрится чище.
 
 
-*Don’t convert option to sequence manually*
+#### Не конвертируйте option в sequence вручную
 
-    // Before
+    // До
     option.map(Seq(_)).getOrElse(Seq.empty)
     option.getOrElse(Seq.empty) // option: Option[Seq[T]]
 
-    // After
+    // После
     option.toSeq
 
-There’s a special method for doing that, which is more concise and,
-less computationally-expensive.
+Для этого есть специальный метод, который делает это кратко и эффективно.
 
 
 ## 7. Maps
+Так же как и с другими классами коллекций, многие советы для последовательностей
+так же применимы к таблицам, поэтому перечислим только специфичные для таблиц.
 
-Just like with other collection classes, many tips for sequences are
-applicable to maps as well, so we’ll enumerate only map-specific ones.
 
+#### Не выполняйте поиск значений вручную
 
-*Don’t search for a value manually*
-
-    // Before
+    // До
     map.find(_._1 == k).map(_._2)
 
-    // After
+    // После
     map.get(k)
 
+TODO:
 While in principe the former code will work, the performance is sub-optimal,
 because `Map` is not a simple collection of (key, value) pairs — it can
 perform lookups in a much more efficient way.
 
-Moreover, the latter expression is simple and easier to undestand.
+Более того, последнее выражение проще и легче для понимания.
 
 
-*Don’t use `get` when a raw value is needed*
+#### Не используйте `get`, когда необходимо сырое значение
 
     // Before
     map.get(k).get
@@ -1747,11 +1754,11 @@ Moreover, the latter expression is simple and easier to undestand.
     // After
     map(k)
 
-There’s no need to produce an intermediate `Option` value when a
-raw value is needed.
+Нет необходимости плодить промежуточный `Option`, когда необходимо сырое (raw)
+значение.
 
 
-*Don’t use `lift` instead of `get`*
+#### Не используйте `lift` вместо `get`
 
     // Before
     map.lift(k)
@@ -1759,6 +1766,7 @@ raw value is needed.
     // After
     map.get(k)
 
+TODO
 There’s no need to treat map value as a partial function to acquire an
 optional result (which is useful for sequences), because we have a
 built-in method with the same functionality. Though `lift` works fine, it
@@ -1766,54 +1774,56 @@ performs additional transformation (from `Map` to `PartialFunction`) and it
 might look confusing.
 
 
-*Don’t call `get` with `getOrElse` separately*
+#### Не вызывайте `get` и `getOrElse` раздельно
 
-    // Before
+    // До
     map.get(k).getOrElse(z)
 
-    // After
+    // После
     map.getOrElse(k, z)
 
-The single method call is simpler, both syntax- and performance-wise.
-In both cases `z` is computed lazily, on demand.
+Единственный вызов метода проще, как с синтаксически, так и с точки зрения
+производительности. В обоих случаях `z` вычисляется лениво, по требованию.
 
 
-*Don’t extract keys manually*
+#### Не извлекайте ключи вручную
 
-    // Before
+    // До
     map.map(_._1)
     map.map(_._1).toSet
     map.map(_._1).toIterator
 
-    // After
+    // После
     map.keys
     map.keySet
     map.keysIterator
 
-The optimized expressions are more intelligible (and might be faster).
+Оптимизированные выражения являются более понятными (и потенциально более
+быстрыми).
 
 
-*Don’t extract values manually*
+#### Не извлекайте значения вручную
 
-    // Before
+    // До
     map.map(_._2)
     map.map(_._2).toIterator
 
-    // After
+    // После
     map.values
     map.valuesIterator
 
-The simplified expressions are more comprehensible (and potentially faster).
+Упрощенные выражения понятней (и потенциально быстрее).
 
 
-*Be careful with `filterKeys`*
+#### Будьте осторожны с `filterKeys`
 
-    // Before
+    // До
     map.filterKeys(p)
 
-    // After
+    // После
     map.filter(p(_._1))
 
+TODO:
 The `filterKeys` methods wraps the original map without copying any elements.
 There’s nothing wrong with that per se, however such a behaviour is hardly
 expected from `filterKeys` method.
@@ -1828,7 +1838,7 @@ so possible side effects might be reordered.
 The `filterKeys` method should probably be deprecated, because it’s now
 impossible to [make it strict](https://issues.scala-lang.org/browse/SI-4776)
 without breaking backward compatibility. A more suitable name for the current
-implementation is `withKeyFilter` (by analogy with the withFilter method).
+implementation is `withKeyFilter` (by analogy with the `withFilter` method).
 
 All in all, it seems reasonable to follow the
 [Rule of Least Surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
@@ -1847,24 +1857,24 @@ an appropriate method synonym:
         map.filterKeys(p)
     }
 
-We’re using the type alias `MapView` to indicate that the result
-map is view-like.
+Мы используем псевдоним типа `MapView` для того чтобы обозначить что
+результирующая таблица является view-подобной.
 
-Another option is to define a simple helper method, like:
+Другим вариантом будет объявление простого вспомогательного метода:
 
     def get(k: T) = if (p(k)) map.get(k) else None
 
 
-*Be careful with `mapValues`*
+#### Будьте осторожны с `mapValues`
 
-    // Before
+    // До
     map.mapValues(f)
 
-    // After
+    // После
     map.map(f(_._2))
 
-Rationale is the same as in the previous tip. In a similar way,
-we may define an unambiguous synonym:
+Основная причина такая же как и в предыдущем случае.
+Подобным способом мы можем объявить недвусмысленный синоним:
 
     type MapView[A, +B] = Map[A, B]
 
@@ -1873,56 +1883,58 @@ we may define an unambiguous synonym:
         map.mapValues(f)
     }
 
-A simpler option would be to define a helper method, like:
+Более простым способом будет объявить вспомогательный метод вроде:
 
     def get(k: T) = map.get(k).map(f)
 
 
-*Don’t filter out keys manually*
+#### Не фильтруйте ключи вручную
 
-    // Before
+    // До
     map.filterKeys(!seq.contains(_))
 
-    // After
+    // После
     map -- seq
 
-We can rely on the simpler syntax to filter out keys.
+Мы можем полагаться на упрощенный синтаксический сахар, чтобы отфильтровать
+ключи.
 
 
-*Use assignment operators to reassign a map*
+#### Используйте операторы переприсваивания таблиц
 
-    // Before
+    // До
     map = map + x -> y
     map1 = map1 ++ map2
     map = map - x
     map = map -- seq
 
-    // After
+    // После
     map += x -> y
     map1 ++= map2
     map -= x
     map --= seq
 
-As with sequences, we may rely on syntactic sugar to simplify such statements.
+Также как и с последовательностями, мы можем полагаться на синтаксический
+сахар, для упрощения подобных операторов.
 
 
-## 8. Supplement
-In addition to the listed recipes, I recommend you to take a look at the
-[Scala Collections documentation](http://docs.scala-lang.org/overviews/collections/introduction.html),
-which is surprisingly good an easy to read.
+## 8. Дополнение
+В дополнение к приведенным рецептам, я рекомендую вам посмотреть на официальную
+[документацию библиотеки коллекций Scala](http://docs.scala-lang.org/overviews/collections/introduction.html),
+которую, на удивление легко читать.
 
-See also:
+Смотрите также:
 
   * [Scala for Project Euler](https://pavelfatin.com/scala-for-project-euler/) —
-    Concise functional Scala solutions to the Project Euler problems.
-  * [Ninety-nine](https://pavelfatin.com/ninety-nine/) — Ninety-nine problems
-    in Scala, Java, Clojure and Haskell (with multiple solutions)
+    Выразительные функциональные решения проблем проекта Эйлер на Scala.
+  * [Ninety-nine](https://pavelfatin.com/ninety-nine/) — Девяносто девять
+    проблем на Scala, Java, Clojure и Haskell (с множеством решений).
 
-Those puzzles really helped me to shape and deepen my understanding of
-Scala collections.
+Данные головоломки неоценимо помогли мне сформировать и углубить мое понимание
+коллекций Scala.
 
-While the list of tips is rather comprehensive,
-it’s probably far from complete. Moreover, because applicability
-of the recipes varies greatly, some fine-tuning is definitely needed.
-Your suggestions welcome.
+Несмотря на обширность данного списка, он наверняка далек от завершения.
+Более того, в виду сильно варьирующейся применимости данных рецептов,
+некоторая тонкая настройка определенно необходима.
+Ваши предложения приветствуются.
 

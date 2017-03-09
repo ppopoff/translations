@@ -13,12 +13,12 @@
 для IntelliJ IDEA.
 
 
-Данная статья представляет собой набор оптимизацийи упрощений для типичного
+Данная статья представляет собой набор оптимизаций упрощений для типичного
 [интерфейса коллекций Scala](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
 Некоторые советы основаны на тонкостях реализации библиотеки коллекций, однако
 TODO:
-большинство рецептов -- являются преобразованиями зравого смысла, которые
+большинство рецептов -- являются преобразованиями здравого смысла, которые
 на практике часто упускаются из виду.
 
 
@@ -36,10 +36,10 @@ TODO:
 
 **Содержание:**
 
-  1. Ленегда
+  1. Легенда
   2. Композиция
   3. Побочные эффекты
-  4. Последоваельности (Sequences)
+  4. Последовательности (Sequences)
     4.1. Создание
     4.2. Length
     4.3. Равенство
@@ -47,7 +47,7 @@ TODO:
     4.5. Существование
     4.6. Фильтрация
     4.7. Сортировка
-    4.8. Сверктка
+    4.8. Свертка
     4.9. Сопоставление
     4.10. Переписываем
   5. Множества (Sets)
@@ -67,7 +67,7 @@ TODO:
 Чтобы сделать примеры кода более понятными, я придерживался следующих условных
 обозначений:
 
-  * `seq` — экземпляр основанной на `Seq` колекции, вроде `Seq(1, 2, 3)`
+  * `seq` — экземпляр основанной на `Seq` коллекции, вроде `Seq(1, 2, 3)`
   * `set` — экземпляр `Set`, например `Set(1, 2, 3)`
   * `array` — массив, такой как `Array(1, 2, 3)`
   * `option` — экземпляр `Option`, например, `Some(1)`
@@ -116,7 +116,7 @@ before enumerating the actual transformations.
 Basically, side effect is any action besides returning a value,
 that is observable outside of a function or expression scope, like:
 
-  * input/output operation,
+  * операции ввода-вывода,
   * variable modification (that is accessible outside of the scope),
   * object state modification (that is observable outside of the scope),
   * throwing an exception (that is not caught within the scope).
@@ -214,7 +214,7 @@ like `Set`, `Option`, `Map` and even `Iterator`
 (because all of them provide similar interfaces with monadic methods).
 
 ### 4.1 Creation
-*Create empty collections explicitly*
+#### Create empty collections explicitly
 
     // Before
     Seq[T]()
@@ -231,7 +231,7 @@ or CPU cycles (otherwise wasted on runtime length checks).
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 ### 4.2 Length
-*Prefer `length` to `size` for arrays*
+#### Prefer `length` to `size` for arrays
 
     // Before
     array.size
@@ -247,7 +247,7 @@ in JVM , those temporary objects will burden GC and can potentially
 degrade code performance (especially, within loops).
 
 
-*Don’t negate emptiness-related properties*
+#### Don’t negate emptiness-related properties
 
     // Before
     !seq.isEmpty
@@ -262,7 +262,7 @@ Simple property adds less visual clutter than a compound expression.
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Don’t compute length for emptiness check*
+#### Don’t compute length for emptiness check
 
     // Before
     seq.length > 0
@@ -287,7 +287,7 @@ never complete, yet we can always verify stream emptiness directly.
 Также применимо к: `Set`, `Map`.
 
 
-*Don’t compute full length for length matching*
+### Don’t compute full length for length matching
 
     // Before
     seq.length > n
@@ -311,12 +311,12 @@ we’re dealing with infinite streams.
 
 
 ### 4.3 Equality
-*Don’t rely on `==` to compare array contents*
+#### Не полагайтесь на `==` для сравнения содержания массивов
 
-    // Before
+    // До
     array1 == array2
 
-    // After
+    // После
     array1.sameElements(array2)
 
 Equality check always produces `false` for different array instances.
@@ -325,7 +325,7 @@ Equality check always produces `false` for different array instances.
 Также применимо к: `Iterator`.
 
 
-*Don’t check equality between collections in different categories*
+#### Don’t check equality between collections in different categories
 
     // Before
     seq == set
@@ -340,7 +340,7 @@ Please note that you should think twice about exact meaning of such a check
 (in reference to the example — how to treat duplicates in the sequence).
 
 
-*Don’t use `sameElements` to compare ordinary collections*
+#### Don’t use `sameElements` to compare ordinary collections
 
     // Before
     seq1.sameElements(seq2)
@@ -354,7 +354,7 @@ because of possible underlying instance check
 (`eq`, which is usually much faster).
 
 
-*Don’t check equality correspondence manually*
+#### Don’t check equality correspondence manually
 
     // Before
     seq1.corresponds(seq2)(_ == _)
@@ -367,7 +367,7 @@ Both expressions respect order of elements.
 Again, we might benefit from performance improvement.
 
 ## 4.4 Indexing
-*Don’t retrieve first element by index*
+#### Don’t retrieve first element by index
 
     // Before
     seq(0)
@@ -381,7 +381,7 @@ Additionally, property access is simpler (both syntactically and semantically)
 than method call with an argument.
 
 
-*Don’t retrieve last element by index*
+#### Don’t retrieve last element by index
 
     // Before
     seq(seq.length - 1)
@@ -395,7 +395,7 @@ Besides, some collection classes can retrieve last element more efficiently
 comparing to by-index access.
 
 
-*Don’t check index bounds explicitly*
+#### Don’t check index bounds explicitly
 
     // Before
     if (i < seq.length) Some(seq(i)) else None
@@ -406,7 +406,7 @@ comparing to by-index access.
 The second expression is semantically equivalent, yet more concise.
 
 
-*Don’t emulate headOption*
+#### Don’t emulate headOption
 
     // Before
     if (seq.nonEmpty) Some(seq.head) else None
@@ -418,7 +418,7 @@ The second expression is semantically equivalent, yet more concise.
 The optimized expression is more concise.
 
 
-*Don’t emulate `lastOption`*
+#### Don’t emulate `lastOption`
 
     // Before
     if (seq.nonEmpty) Some(seq.last) else None
@@ -430,7 +430,7 @@ The optimized expression is more concise.
 The optimized expression is more concise (and potentially faster).
 
 
-*Be careful with `indexOf` and `lastIndexOf` argument types*
+#### Be careful with `indexOf` and `lastIndexOf` argument types
 
     // Before
     Seq(1, 2, 3).indexOf("1") // compilable
@@ -447,23 +447,23 @@ discoverable at compile time. That’s where auxiliary IDE
 inspections come in handy.
 
 
-*Don’t construct indices range manually*
+#### Don’t construct indices range manually
 
-    // Before
+    // До
     Range(0, seq.length)
 
-    // After
+    // После
     seq.indices
 
 There’s a built-in method that returns the range of all indices of a sequence.
 
 
-*Don’t zip collection with its indices manually*
+#### Don’t zip collection with its indices manually
 
-    // Before
+    // До
     seq.zip(seq.indices)
 
-    // After
+    // После
     seq.zipWithIndex
 
 For one thing, the latter expression is more concise. Besides, we may
@@ -475,12 +475,12 @@ possibly infinite collections (like `Stream`).
 
 
 ### 4.5 Existence
-*Don’t use equality predicate to check element presence*
+#### Don’t use equality predicate to check element presence
 
-    // Before
+    // До
     seq.exists(_ == x)
 
-    //  After
+    // После
     seq.contains(x)
 
 The second expression is semantically equivalent, yet more concise.
@@ -492,7 +492,7 @@ because sets offer close to `O(1)` lookups
 
 Также применимо к: `Set`, `Option`, `Iterator`.
 
-*Be careful with `contains` argument type*
+#### Be careful with `contains` argument type
 
     // Before
     Seq(1, 2, 3).contains("1") // compilable
@@ -506,12 +506,12 @@ to hard-to-find bugs, which are not discoverable at compile time.
 Be careful with the method arguments
 
 
-*Don’t use inequality predicate to check element absence*
+#### Don’t use inequality predicate to check element absence
 
-    // Before
+    // До
     seq.forall(_ != x)
 
-    // After
+    // После
     !seq.contains(x)
 
 Again, the latter expression is cleaner and
@@ -520,7 +520,7 @@ possibly faster (especially, for sets).
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t count occurrences to check existence*
+#### Don’t count occurrences to check existence
 
     // Before
     seq.count(p) > 0
@@ -542,7 +542,7 @@ The predicate `p` must be pure.
 Также применимо к: `Set`, `Map`, `Iterator`.
 
 
-*Don’t resort to filtering to check existence*
+#### Don’t resort to filtering to check existence
 
     // Before
     seq.filter(p).nonEmpty
@@ -566,7 +566,7 @@ The predicate `p` must be pure.
 
 
 ### 4.6 Filtering
-*Don’t negate filter predicate*
+#### Don’t negate filter predicate
 
     // Before
     seq.filter(!p)
@@ -580,7 +580,7 @@ The latter expression is syntactically simpler
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Don’t resort to filtering to count elements*
+#### Don’t resort to filtering to count elements
 
     // Before
     seq.filter(p).length
@@ -594,7 +594,7 @@ The call to `filter` creates an intermediate collection
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Don’t use filtering to find first occurrence*
+#### Don’t use filtering to find first occurrence
 
     // Before
     seq.filter(p).headOption
@@ -611,37 +611,37 @@ while only the first one is needed.
 
 ### 4.7 Sorting
 
-*Don’t sort by a property manually*
+#### Don’t sort by a property manually
 
-    // Before
+    // До
     seq.sortWith(_.property <  _.property)
 
-    // After
+    // После
     seq.sortBy(_.property)
 
 We have a special method for that, which is more clear and concise.
 
 
-*Don’t sort by identity manually*
+#### Don’t sort by identity manually
 
-    // Before
+    // До
     seq.sortBy(identity)
     seq.sortWith(_ < _)
 
-    // After
+    // После
     seq.sorted
 
 There’s a special method for that, more clear and concise.
 
 
-*Perform reverse sorting in one step*
+#### Perform reverse sorting in one step
 
-    // Before
+    // До
     seq.sorted.reverse
     seq.sortBy(_.property).reverse
     seq.sortWith(f(_, _)).reverse
 
-    // After
+    // После
     seq.sorted(Ordering[T].reverse)
     seq.sortBy(_.property)(Ordering[T].reverse)
     seq.sortWith(!f(_, _))
@@ -652,7 +652,7 @@ exclude the additional transformation step
 
 
 ### 4.8 Reduction
-*Don’t calculate sum manually*
+#### Don’t calculate sum manually
 
     // Before
     seq.reduce(_ + _)
@@ -672,7 +672,7 @@ The second transformation might be replaced with the first when `z` is `0`.
 Также применимо к: `Set`, `Iterator`.
 
 
-*Don’t calculate product manually*
+#### Don’t calculate product manually
 
     // Before
     seq.reduce(_ * _)
@@ -689,7 +689,7 @@ The second transformation might be replaced with the first when z is 1.
 Также применимо к: `Set`, `Iterator`.
 
 
-*Don’t search for the smallest element manually*
+#### Don’t search for the smallest element manually
 
     // Before
     seq.reduce(_ min _)
@@ -704,13 +704,13 @@ Rationale is the same as in the previous tips.
 Также применимо к: `Set`, `Iterator`.
 
 
-*Don’t search for the largest element manually*
+#### Don’t search for the largest element manually
 
-    // Before
+    // До
     seq.reduce(_ max _)
     seq.fold(z)(_ max _)
 
-    // After
+    // После
     seq.max
     z max seq.max
 
@@ -719,7 +719,7 @@ Rationale is the same as in the previous tips.
 Также применимо к: `Set`, `Iterator`.
 
 
-*Don’t emulate `forall`*
+#### Don’t emulate `forall`
 
     // Before
     seq.foldLeft(true)((x, y) => x && p(y))
@@ -735,7 +735,7 @@ The predicate `p` must be pure.
 Также применимо к: `Set`, `Option` (for the second line), `Iterator`.
 
 
-*Don’t emulate `exists`*
+#### Don’t emulate `exists`
 
     // Before
     seq.foldLeft(false)((x, y) => x || p(y))
@@ -754,13 +754,13 @@ The predicate `p` must be pure.
 Также применимо к: `Set`, `Option` (for the second line), `Iterator`.
 
 
-*Don’t emulate `map`*
+#### Don’t emulate `map`
 
-    // Before
+    // До
     seq.foldLeft(Seq.empty)((acc, x) => acc :+ f(x))
     seq.foldRight(Seq.empty)((x, acc) => f(x) +: acc)
 
-    // After
+    // После
     seq.map(f)
 
 That’s a “classical” implementation of map via folding
@@ -772,13 +772,13 @@ formulation when we have the concise built-in method
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate `filter`*
+#### Don’t emulate `filter`
 
-    // Before
+    // До
     seq.foldLeft(Seq.empty)((acc, x) => if (p(x)) acc :+ x else acc)
     seq.foldRight(Seq.empty)((x, acc) => if (p(x)) x +: acc else acc)
 
-    // After
+    // После
     seq.filter(p)
 
 Rationale is the same as in the previous tip.
@@ -786,13 +786,13 @@ Rationale is the same as in the previous tip.
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate `reverse`*
+#### Don’t emulate `reverse`
 
-    // Before
+    // До
     seq.foldLeft(Seq.empty)((acc, x) => x +: acc)
     seq.foldRight(Seq.empty)((x, acc) => acc :+ x)
 
-    // After
+    // После
     seq.reverse
 
 Again, the built-in method is cleaner and faster.
@@ -800,13 +800,13 @@ Again, the built-in method is cleaner and faster.
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-### 4.9 Matching
+### 4.9 Сопоставление
 Here are several dedicated tips that are related to Scala’s
 [pattern matching](http://docs.scala-lang.org/tutorials/tour/pattern-matching.html)
 and [partial functions](https://www.scala-lang.org/api/current/index.html#scala.PartialFunction).
 
 
-*Use partial function instead of function with pattern matching*
+#### Use partial function instead of function with pattern matching
 
     // Before
     seq.map {
@@ -829,7 +829,7 @@ This tip is not actually collection-related at all. However, because
 are so ubiquitous in Scala collection API, the tip is especially handy.
 
 
-*Convert `flatMap` with partial function to `collect`*
+#### Convert `flatMap` with partial function to `collect`
 
     // Before
     seq.flatMap {
@@ -847,7 +847,7 @@ The updated expression produces the same result, but looks much simpler.
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Convert `match` to `collect` when the result is a collection*
+#### Convert `match` to `collect` when the result is a collection
 
     // Before
     v match {
@@ -871,7 +871,7 @@ Personally, I often use this trick with `Option` rather than sequences per se.
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate collectFirst*
+#### Don’t emulate collectFirst
 
     // Before
     seq.collect{case P => ???}.headOption
@@ -907,7 +907,7 @@ The predicates `p1` and `p2` must be pure.
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Merge consecutive `map` calls*
+#### Merge consecutive `map` calls
 
     // Before
     seq.map(f).map(g)
@@ -926,12 +926,12 @@ The functions `f` and `g` must be pure.
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Do sorting after filtering*
+#### Do sorting after filtering
 
-    // Before
+    // До
     seq.sorted.filter(p)
 
-    // After
+    // После
     seq.filter(p).sorted
 
 Sorting is computationally expensive procedure.
@@ -944,12 +944,12 @@ like `sortWith` and `sortBy`.
 The predicate `p` must be pure.
 
 
-*Don’t reverse collection explicitly before calling `map`*
+#### Don’t reverse collection explicitly before calling `map`
 
-    // Before
+    // До
     seq.reverse.map(f)
 
-    // After
+    // После
     seq.reverseMap(f)
 
 The first expression creates an intermediate (reversed) collection before
@@ -958,30 +958,30 @@ Other times it’s possible to perform the required transformation directly,
 without creating the intermediate collection, which is more efficient.
 
 
-*Don’t reverse collection explicitly to acquire reverse iterator*
+#### Don’t reverse collection explicitly to acquire reverse iterator
 
-    // Before
+    // До
     seq.reverse.iterator
 
-    // After
+    // После
     seq.reverseIterator
 
 Again, the latter expression is simpler and might be more efficient.
 
 
-*Don’t convert collection to `Set` to find distinct elements*
+#### Don’t convert collection to `Set` to find distinct elements
 
-    // Before
+    // До
     seq.toSet.toSeq
 
-    // After
+    // После
     seq.distinct
 
 There’s no need to create a temporary set (at least explicitly) to
 find distinct elements.
 
 
-*Don’t emulate slice*
+#### Don’t emulate slice
 
     // Before
     seq.drop(x).take(y)
@@ -996,102 +996,99 @@ we may expect a potential performance improvements.
 Также применимо к: `Set`, `Map`, `Iterator`.
 
 
-*Don’t emulate `splitAt`*
+#### Не эмулируйте `splitAt`
 
-    // Before
+    // До
     val seq1 = seq.take(n)
     val seq2 = seq.drop(n)
 
-    // After
+    // После
     val (seq1, seq2) = seq.splitAt(n)
 
-The optimized expression performs faster on linear sequences
-(like `List` or `Stream`), because it computes the results in a single pass.
+Оптимизированное выражения исполняется быстрее для линейных последовательностей.
+(как для `List`, так и для `Stream`), в виду того что оно вычисляет результаты
+за один проход. Также применимо к: `Set`, `Map`.
 
-Также применимо к: `Set`, `Map`.
 
+#### Не эмулируйте `span`
 
-*Don’t emulate `span`*
-
-    // Before
+    // До
     val seq1 = seq.takeWhile(p)
     val seq2 = seq.dropWhile(p)
 
-    // After
+    // После
     val (seq1, seq2) = seq.span(p)
 
-That’s how we can traverse the sequence and check the predicate only once,
-instead of twice.
+Вот как мы можем пройти последовательность и проверить предикат всего
+один раз, а не два.
 
-The predicate `p` must be pure.
-
+Предикат `p` не должен иметь побочных эффектов.
 Также применимо к: `Set`, `Map`, `Iterator`.
 
 
-*Don’t emulate `partition`*
+#### Не эмулируйте `partition`
 
-    // Before
+    // До
     val seq1 = seq.filter(p)
     val seq2 = seq.filterNot(p)
 
-    // After
+    // После
     val (seq1, seq2) = seq.partition(p)
 
-Again, the benefit is a single-pass computation.
+Опять-таки, преимуществом -- однопроходное вычисление
 
-The predicate `p` must be pure.
-
+Предикат `p` не должен иметь побочных эффектов.
 Также применимо к: `Set`, `Map`, `Iterator`.
 
 
-*Don’t emulate `takeRight`*
+#### Не эмулируйте `takeRight`
 
-    // Before
+    // До
     seq.reverse.take(n).reverse
 
-    // After
+    // После
     seq.takeRight(n)
 
-The latter expression is more concise and potentially more efficient
-(for both indexed- and linear sequences).
+Последнее выражение является более выразительным и потенциально более
+эффективным (Как для индексированных, так и для линейных последовательностей).
 
 
-*Don’t emulate `flatten`*
+#### Не эмулируйте `flatten`
 
-    // Before (seq: Seq[Seq[T]])
+    // До (seq: Seq[Seq[T]])
     seq.reduce(_ ++ _)
     seq.fold(Seq.empty)(_ ++ _)
     seq.flatMap(identity)
 
-    // After
+    // После
     seq.flatten
 
-There’s no need to flatten collections manually when we have a dedicated
-built-in method for doing exactly that.
+Нет необходимости вручную уплощать коллекции, когда у
+нас уже есть специализированный метод для этого.
 
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t emulate `flatMap`*
+#### Не эмулируйте `flatMap`
 
-    // Before (f: A => Seq[B])
+    // До (f: A => Seq[B])
     seq.map(f).flatten
 
-    // After
+    // После
     seq.flatMap(f)
 
-Again, there’s no need to emulate built-in method manually.
-Besides improved clarity, we can skip the creation of an intermediate collection.
+Again, there’s no need to emulate built-in method manually. Besides
+improved clarity, we can skip the creation of an intermediate collection.
 
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Don’t use `map` when result is ignored*
+#### Don’t use `map` when result is ignored
 
-    // Before
-    seq.map(???) // the result is ignored
+    // До
+    seq.map(???) // результат игнорируется
 
-    // After
+    // После
     seq.foreach(???)
 
 When side effect is all that is needed,
@@ -1101,7 +1098,7 @@ Such a call is misleading (and less efficient).
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Don’t use `unzip` to extract a single component*
+#### Don’t use `unzip` to extract a single component
 
     // Before (seq: Seq[(A, B]])
     seq.unzip._1
@@ -1114,10 +1111,10 @@ when only a single component is required.
 
 Other possible method: `unzip3`.
 
-Также применимо к: Set, Option, Map, Iterator.
+Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-*Don’t create temporary collections*
+#### Don’t create temporary collections
 
 This recipe is subdivided into three parts
 (depending on transformation final result).
@@ -1219,7 +1216,7 @@ All the functions (like `f` and `g`) and predicates (`p`) must be pure
 Также применимо к: `Set`, `Map`.
 
 
-*Use assignment operators to reassign a sequence*
+#### Use assignment operators to reassign a sequence
 
     // Before
     seq = seq :+ x
@@ -1260,7 +1257,7 @@ The optimized statements are more concise.
 Также применимо к: `Set`, `Map`, `Iterator` (with operator specifics in mind).
 
 
-*Don’t convert collection type manually*
+#### Don’t convert collection type manually
 
     // Before
     seq.foldLeft(Set.empty)(_ + _)
@@ -1279,7 +1276,7 @@ consider using views or similar techniques, as described above.
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-*Be careful with `toSeq` on non-strict collections*
+#### Be careful with `toSeq` on non-strict collections
 
     // Before (seq: TraversableOnce[T])
     seq.toSeq
@@ -1309,7 +1306,7 @@ the stream is already closed.
 To clarify the intent, it’s better to write `toStream` explicitly, or,
 if we need a strict collection, after all, to use `toVector` instead of `toSeq`.
 
-*Don’t convert to `String` manually*
+#### Don’t convert to `String` manually
 
     // Before (seq: Seq[String])
     seq.reduce(_ + _)
@@ -1331,11 +1328,11 @@ Other possible methods are:
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-## 5. Sets
+## 5. Множесва (Sets)
 Most of the tips for sequences are applicable to sets as well.
 Additionally, there are several set-specific tips available.
 
-*Don’t use `sameElements` to compare unordered collections*
+#### Don’t use `sameElements` to compare unordered collections
 
     // Before
     set1.sameElements(set2)
@@ -1356,7 +1353,7 @@ Classes that explicitly guarantee predictable iteration order
 Также применимо к: `Map`.
 
 
-*Don’t compute set intersection manually*
+#### Don’t compute set intersection manually
 
     // Before
     set1.filter(set2.contains)
@@ -1373,7 +1370,7 @@ however we should keep in mind, that in such a case,
 duplicate elements will be handled differently.
 
 
-*Don’t compute set difference manually*
+#### Don’t compute set difference manually
 
     // Before
     set1.filterNot(set2.contains)
@@ -1390,61 +1387,60 @@ though we should consider duplicate elements.
 
 
 ## 6. Options
-Technically, `Option` is not a part of the Scala Collections,
-however it provides similar interface (with monadic methods, etc.)
-and behaves like a special kind of collection that may or may not
-hold some value.
+Технически, `Option` не является частью коллекций Scala, однако он предоставляет
+похожий интерфейс (с монадическими методами и тд) и ведет также как специальный
+тип коллекций который может иметь, а может не иметь значение.
 
-Many of the tips for sequences are also applicable to options. Besides,
-here are dedicated tips, that are based on `Option` API.
+Многие из приведенных советов для последовательностей также применимы и к
+option. Кроме того, здесь представлены советы характерные для `Option` API.
 
-### 6.1 Value
-*Don’t compare option values with `None`*
+### 6.1 Значение
+#### Не сравнивайте значения option и `None`
 
-    // Before
+    // До
     option == None
     option != None
 
-    // After
+    // После
     option.isEmpty
     option.isDefined
 
-While such a comparison is fully legitimate, we have a more straightforward
-way to check whether option is defined.
+В то время как сравнение является вполне законным, у нас есть более простой
+способ, позволяет проверить объявлен ли option.
 
-Another advantage of this simplification, is that if you ever decide to
-change the type from `Option[T]` to just `T`, scalac will compile the former
-expression (yielding only a warning), while compilation of the latter one
-will result in a righteous error.
+Другое преимущество данного упрощения в том, что если вы решите изменить тип от
+`Option[T]` к `T`, scalac скомпилирует предшествующее выражение (выдав только
+одно предупреждение), в то время как компиляция последнего, справедливо
+закончится ошибкой
 
 
-*Don’t compare option values with `Some`*
+#### Не сравнивайте значения option с `Some`
 
-    // Before
+    // До
     option == Some(v)
     option != Some(v)
 
-    // After
+    // После
     option.contains(v)
     !option.contains(v)
 
-This tip is a complement to the previous one.
+Данный совет является дополнением к предыдущему.
 
 
-*Don’t rely on instance type to check value existence*
+#### Не прибегайте к проверке типа, для проверки существования
 
-    // Before
+    // До
     option.isInstanceOf[Some[_]]
 
-    // After
+    // После
     option.isDefined
 
-There’s simply no need for such trickery.
+В подобном трюкачестве нет нужды.
 
 
-*Don’t resort to pattern matching to check value existence*
+#### Не прибегайте к сопоставлению с образцом, для проверки существования
 
-    // Before
+    // До
     option match {
         case Some(_) => true
         case None => false
@@ -1455,57 +1451,57 @@ There’s simply no need for such trickery.
         case None => true
     }
 
-    // After
+    // После
     option.isDefined
     option.isEmpty
 
-Again, while the former expression is technically correct, there’s no
-justification for such an extravagance. Besides,
-the simplified expression will work faster.
+Опять же, хотя первое выражение и является корректным, оправдания подобной
+экстравагантности нет. Помимо того, упрощенное выражение будет работать быстрее.
 
 Также применимо к: `Seq`, `Set`.
 
 
-*Don’t negate value existence-related properties*
+#### Не отрицайте значения свойств, связанных с существованием
 
-    // Before
+    // До
     !option.isEmpty
     !option.isDefined
     !option.nonEmpty
 
-    // After
+    // После
     seq.isDefined
     seq.isEmpty
     seq.isEmpty
 
-Rationale is the same as the one for sequences — simple property adds less
-visual clutter than a compound expression.
+Обоснование такое же как и для последовательностей — простое свойство добавляет
+меньше визуального шума, чем составное выражение.
 
-Note that we have the synonyms: `isDefined` (option-specific) and `nonEmpty`
-(sequence-specific). It might be reasonable to prefer the former one,
-to distinguish options from sequences.
+Отметьте, что мы имеем синонимы: `isDefined` (специфичный для option) и
+`nonEmpty` (специфичный для последовательностей). Возможно, было бы разумно
+отдать предпочтение первому, для явного отделения option и последовательностей.
 
 
 ### 6.2 Null
-*Don’t compare value with `null` explicitly to construct an `Option`*
+#### Не выполняйте явное сравнение значений с `null` чтобы создать `Option`
 
-    // Before
+    // До
     if (v != null) Some(v) else None
 
-    // After
+    // После
     Option(v)
 
-We have a special, concise syntax for that.
+Для этого у нас есть специальный, более выразительный синтаксис.
 
 
-*Don’t provide `null` as an explicit alternative*
+#### Не предоставляйте `null` как явную альтернативу
 
-    // Before
+    // До
     option.getOrElse(null)
 
-    // After
+    // После
     option.orNull
 
+TODO:
 We can rely on the predefine method in such a case,
 so the expression will become shorter.
 
@@ -1639,7 +1635,7 @@ This rationale is common for all the following cases.
     option.filter(p)
 
 
-#### Не эмулируйте `map`*
+#### Не эмулируйте `map`
 
     // До
     if (option.isDefined) Some(f(option.get)) else None
@@ -1697,8 +1693,8 @@ This rationale is common for all the following cases.
     option.exists(p)
 
 Мы представили довольно похожее правило для последовательностей (которое
-также применимо к optionам).
-Данная трансформация является специальным случаем вызова `getOrElse`.
+также применимо к optionам). Данная трансформация является специальным
+случаем вызова `getOrElse`.
 
 
 #### Не эмулируйте `flatten`
@@ -1738,10 +1734,10 @@ This rationale is common for all the following cases.
     // После
     map.get(k)
 
-TODO:
-While in principe the former code will work, the performance is sub-optimal,
-because `Map` is not a simple collection of (key, value) pairs — it can
-perform lookups in a much more efficient way.
+В принципе, первый фрагмент кода будет работать, однако производительность
+будет недостаточной в виду того что `Map` не является простой коллекцией
+пар (ключ, значение) — она может выполнять поиск в наиболее
+эффективным способом.
 
 Более того, последнее выражение проще и легче для понимания.
 
@@ -1766,12 +1762,11 @@ perform lookups in a much more efficient way.
     // After
     map.get(k)
 
-TODO
-There’s no need to treat map value as a partial function to acquire an
-optional result (which is useful for sequences), because we have a
-built-in method with the same functionality. Though `lift` works fine, it
-performs additional transformation (from `Map` to `PartialFunction`) and it
-might look confusing.
+Нет необходимости рассматривать значение таблицы как частичную функцию для
+получения опционального результата (что полезно для последовательностей),
+потому что у нас есть встроенный метод с той же функциональностью.
+Хотя `lift` отлично работает, он выполняет дополнительное преобразование
+(от `Map` до` PartialFunction`) и может показаться запутанным.
 
 
 #### Не вызывайте `get` и `getOrElse` раздельно
@@ -1830,20 +1825,24 @@ expected from `filterKeys` method.
 Because it unexpectedly behaves like a view, code performance might be
 substantially degraded in some cases (e. g. for `filterKeys(p).groupBy(???)`).
 
+TODO:
 Another possible pitfall is unexpected “laziness” (collection transformers
 are expected to be strict by default) – the predicated is not evaluated at
 all withing the method call itself,
 so possible side effects might be reordered.
 
+TODO:
 The `filterKeys` method should probably be deprecated, because it’s now
 impossible to [make it strict](https://issues.scala-lang.org/browse/SI-4776)
 without breaking backward compatibility. A more suitable name for the current
 implementation is `withKeyFilter` (by analogy with the `withFilter` method).
 
+TODO:
 All in all, it seems reasonable to follow the
 [Rule of Least Surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
 and to filter keys manually.
 
+TODO:
 Nevertheless, as the view-like functionality of `filterKeys` is potentially
 useful (when only a few entries will be accessed while the map is relatively
 large), we may still consider using the method. To keep other people who read

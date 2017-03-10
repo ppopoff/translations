@@ -17,10 +17,8 @@
 [интерфейса коллекций Scala](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
 Некоторые советы основаны на тонкостях реализации библиотеки коллекций, однако
-TODO:
-большинство рецептов -- являются преобразованиями здравого смысла, которые
+большинство рецептов -- являются разумными преобразованиями, которые
 на практике часто упускаются из виду.
-
 
 Этот список вдохновлен моими попытками разработать практичные
 [инспекции для Scala коллекций](https://youtrack.jetbrains.com/oauth?state=%2Fissues%2FSCL%3Fq%3Dby%253A%2BPavel.Fatin%2Bcollection%2Border%2Bby%253A%2Bcreated)
@@ -41,7 +39,7 @@ TODO:
   3. Побочные эффекты
   4. Последовательности (Sequences)
     4.1. Создание
-    4.2. Length
+    4.2. Длина
     4.3. Равенство
     4.4. Индексация
     4.5. Существование
@@ -104,213 +102,207 @@ TODO:
 
     seq.contains(x)
 
-TODO
-So, we can rely on “substitution model of recipe application” (by analogy
-with [SICP](https://mitpress.mit.edu/sicp/full-text/sicp/book/node10.html))
-to simplify complex expressions.
+Таким образом, мы можем полагаться на "заменяющую модель применения рецептов"
+(по аналогии с [SICP](https://mitpress.mit.edu/sicp/full-text/sicp/book/node10.html))
+для упрощения комплексных выражений.
 
 ## 3. Побочные эффекты
-“Side effect” is an essential concept that should be reviewed
-before enumerating the actual transformations.
+"Побочный эффект" является необходимой концепцией, которую следует рассмотреть
+перед тем, как перечислять основные преобразования.
 
-Basically, side effect is any action besides returning a value,
-that is observable outside of a function or expression scope, like:
+По сути, побочный эффект это некоторые действие, помимо возврата значения,
+наблюдаемое вне тела функции, такое как:
 
-  * операции ввода-вывода,
-  * variable modification (that is accessible outside of the scope),
-  * object state modification (that is observable outside of the scope),
-  * throwing an exception (that is not caught within the scope).
+  * операция ввода-вывода,
+  * модификация переменной (доступной вне тела области видимости),
+  * изменение состояния объекта (наблюдаемое вне области видимости),
+  * возбуждение исключения (которое не обрабатывается внутри области видимости).
 
-When a function or expression contain any of these actions,
-they are said to have side effects, otherwise they are said to be “pure”.
+О функциях или выражение содержащих любое из вышеперечисленных действий,
+говорят, что они содержат побочные эффекты, в противном случае их называют
+"чистыми".
 
-Why side effects are such a big deal?
-Because in the presence of side effects, the order of evaluation matters.
-For example, here are two “pure” expressions
-(assigned to the corresponding values):
+Почему побочные эффекты так важны?
+Потому что при наличии побочных эффектов, порядок исполнения начинает иметь
+значение. Например, ниже представлены два "чистых" выражения, связанных с
+(соответствующими значениями):
 
     val x = 1 + 2
     val y = 2 + 3
 
-Because they contain no side effects
-(i. e. effects that are observable outside of the expressions),
-we may actually evaluate those expressions in any order — `x` then `y`,
-or `y` then `x` — it doesn’t disrupt evaluation correctness
-(we may even cache the result values, if we want to).
-Now let’s consider the following modification:
+Поскольку они не содержат побочных эффектов (т.е. эффектов, наблюдаемых вне
+выражения), мы можем вычислить эти выражения в различном порядке — сначала
+`x`, а затем `y`, или сначала `y`, а затем `x` — это не повлияет на корректность
+полученных результатов (мы можем даже закешировать результирующие значения, если
+того захотим). Теперь, давайте представим следующую модификацию:
 
     val x = { print("foo"); 1 + 2 }
     val y = { print("bar"); 2 + 3 }
 
-That’s another story — we cannot reverse the order of evaluation,
-because, that way, “barfoo” instead of “foobar” will be printed to
-console (and that is not what we expect).
+Теперь у нас совсем другая история — мы не можем изменить порядок выполнения,
+и увидеть "barfoo" вместо "foobar" в нашем терминале (и это не то, что мы
+ожидали).
 
-So, the presence of side effects **reduces the number of
-possible transformations** (including simplifications and optimizations)
-that we may apply to code.
+Таким образом, присутствие побочных эффектов **уменьшает количество возможных
+преобразований** (включая упрощения и оптимизации), которые мы можем применить
+к коду.
 
-The same reasoning can be applied to collection-related expressions.
-Let’s imagine that we have some out-of-scope `builder`
-(with side-effecting method `append`):
+Подобное объяснение может быть применено и к выражениям связанным с коллекциями.
+Давайте представим, что у нас есть некий `builder` вне области видимости,
+(с методом `append`, имеющим побочный эффект).
 
     seq.filter{ x => builder.append(x); x > 3 }.headOption
 
-In principle, `seq.filter(p).headOption` construct is
-reducible to `seq.find(p)` call,
-however the side effect presence forbids us to do that.
-Here’s an attempt:
+В принципе конструкция, `seq.filter(p).headOption` сократима до вызова
+`seq.find(p)`, однако наличие побочных эффектов не позволяет нам это сделать:
 
     seq find { x => builder.append(x); x > 3 }
 
-While those expressions are equivalent in terms of result value,
-they are not equivalent in regard to side effects.
-The former expression will append all the elements, while the latter
-one will omit elements after a first predicate match.
-So, such a simplification cannot be performed.
+Не смотря на то, что эти выражения эквивалентны с точки зрения результирующего
+значения, они не эквивалентны из-за побочных эффектов. Предыдущий пример добавит
+все элементы, в то время как последний пропустит элементы после первого
+соответствия предикату. Таким образом, подобное упрощение не сможет иметь место.
 
-What can we do to make the automatic simplification possible?
-The answer is a **golden rule** that should be applied to all side effects
-in our code (including code with no collections at all):
+Что можно сделать для того, чтобы сделать автоматические упрощения возможными?
+Ответ является **золотым правилом** которое должно быть применимо ко всем
+побочным эффектам в вашем коде (даже включая код, не имеющий коллекций совсем):
 
-  * avoid side effects, whenever possible,
-  * isolate side effect from pure code, otherwise.
+  * избегать побочных эффектов, пока это возможно
+  * иначе, изолировать побочные эффекты от чистого кода.
 
-Thus, we need either to get rid of the `builder`
-(with its side-effecting API),
-or separate the call to `builder` from the pure expression.
-Let’s assume that this `builder` is some third-party object
-that we cannot get rid of, so we have to isolate the call:
+Поэтому, мы необходимо либо избавиться от `builder`а (вместе с его API,
+содержащим побочные эффекты), или отделить вызов `builder`а от чистого выражения
+Предположим, что этот  `builder` является неким второстепенным объектом, от
+которого мы можем избавиться, чтобы изолировать вызов:
 
     seq.foreach(builder.append)
     seq.filter(_ > 3).headOption
 
-Now we can safely apply the transformation:
+Сейчас мы можем безопасно выполнить преобразование:
 
     seq.foreach(builder.append)
     seq.find(x > 3)
 
-Nice and clean! The isolation of the side effect made automatic
-transformation possible. An additional benefit is that,
-because of the clean separation, the resulted code is
-easier to comprehend by humans.
+Чисто и красиво! Изоляция побочных эффектов делает автоматические преобразования
+возможными. Дополнительной пользой будет и то, что в виду наличия чистого
+отделения, результирующий код легче понять человеку.
 
-Less obvious, yet very important benefit of side effect isolation, is that
-our code becomes more robust, irrelatively of the possible simplifications.
-As applied to the example,
-here’s why: the original expression might produce different side effects
-depending on the actual `Seq` implementation — with `Vector`,
-for example, it will append all the elements, yet with `Stream` it
-will omit elements after a first predicate match
-(because streams are “lazy” — elements are only evaluated when they are needed).
-The side effect isolation allowed us to avoid this indeterminate behavior.
+Наименее очевидной, однако наиболее заметной выгодой от изоляции побочных
+эффектов будет повышение надежности вашего кода, относительно других возможных
+оптимизаций.
+
+Применительно к примеру, первоначальное выражение может порождать различные
+побочные эффекты зависящие от текущей реализации `Seq`. Для `Vector`, например,
+оно добавит все элементы, для `Stream` оно пропустит все элементы после первого
+удачного сопоставления с предикатом (потому что стримы являются "ленивыми" —
+элементы вычисляются только тогда, когда это необходимо). Изоляция побочных
+эффектов позволяет нам избежать этого неопределенного поведения.
 
 
-## 4. Sequences
+## 4. Последовательности (Sequences)
 While tips in the current section are intended for classes
 that are descendants of `Seq`, some transformations are applicable
 to other collection (and non-collection) classes,
 like `Set`, `Option`, `Map` and even `Iterator`
 (because all of them provide similar interfaces with monadic methods).
 
-### 4.1 Creation
-#### Create empty collections explicitly
+### 4.1 Создание
+#### Создавайте пустые коллекции явно
 
-    // Before
+    // До
     Seq[T]()
 
-    // After
+    // После
     Seq.empty[T]
 
-Some immutable collection classes provide singleton “empty” implementations,
-however not all of the factory methods check length of the created collections.
-Thus, by making collection emptiness apparent at compile time,
-we could save either heap space (by reusing empty collection instances)
-or CPU cycles (otherwise wasted on runtime length checks).
+Некоторые неизменяемые (immutable) классы коллекций имеют синглтон с реализацией
+метода `empty`. Однако, далеко не все из этих фабричных методов проверяют длину
+созданных коллекций. Таким образом, делая пустоту очевидной на этапе компиляции,
+вы можете сохранить либо место в куче (путем переиспользования экземпляра), либо
+такты процессора (потраченные бы на проверки размерности во время выполнения).
 
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
-### 4.2 Length
-#### Prefer `length` to `size` for arrays
+### 4.2 Длины
+#### Используйте `length` вместо `size` для массивов
 
-    // Before
+    // До
     array.size
 
-    // After
+    // После
     array.length
 
-While `size` and `length` are basically synonyms, in Scala 2.11
-`Array.size` calls are still implemented via implicit conversion,
-so that intermediate wrapper objects are created for every method call. Unless
-you enable [escape analysis](https://en.wikipedia.org/wiki/Escape_analysis)
-in JVM , those temporary objects will burden GC and can potentially
-degrade code performance (especially, within loops).
+Несмотря на то что, `size` и `length` являются практически синонимами, в
+Scala 2.11 вызовы `Array.size` по прежнему выполняются через неявное
+преобразование (implicit conversion), таким образом создаются промежуточные
+объекты-обертки для каждого вызова метода. Если вы конечно не включите
+[эскейп анализ](https://en.wikipedia.org/wiki/Escape_analysis) для JVM, подобные
+временные объекты будут обузой для сборщика мусора и деградируют
+производительность кода (особенно внутри циклов).
 
+#### Не отрицайте проверки на пустоту
 
-#### Don’t negate emptiness-related properties
-
-    // Before
+    // До
     !seq.isEmpty
     !seq.nonEmpty
 
-    // After
+    // После
     seq.nonEmpty
     seq.isEmpty
 
-Simple property adds less visual clutter than a compound expression.
+Простые свойства добавляют меньше визуального шума, нежели составные выражения.
 
 Также применимо к: `Set`, `Option`, `Map`, `Iterator`.
 
 
-#### Don’t compute length for emptiness check
+#### Не вычисляйте длину при проверке на пустоту.
 
-    // Before
+    // До
     seq.length > 0
     seq.length != 0
     seq.length == 0
 
-    // After
+    // После
     seq.nonEmpty
     seq.nonEmpty
     seq.isEmpty
 
-On the one hand, simple property is more easy to perceive than
-compound expression. On the other hand — collections that are decedents
-of `LinearSeq` (like `List`) can take `O(n)` time to compute length
-(instead of `O(1)` time for `IndexedSeq`),
-so we can speedup our code by avoiding length computations when
-exact value is not really required.
+С одной стороны, простое свойство воспринимается гораздо легче, нежели
+составное выражение. С другой стороны, для коллекций-наследников `LinearSeq`
+(таких как `List`) может потребоваться `O(n)` времени на вычисление длины
+списка (вместо `O(1)` для `IndexedSeq`), таким образом мы можем ускорить наш
+код избегая вычисления длины когда нам вобщем-то, это значение и не нужно.
 
-Additionally, keep in mind that `.length` call on an infinite stream will
-never complete, yet we can always verify stream emptiness directly.
+Имейте также в виду, что вызов `.length` для бесконечных стримов может никогда
+не закончиться, поэтому всегда проверяйте стрим на пустоту явно.
 
 Также применимо к: `Set`, `Map`.
 
 
 ### Don’t compute full length for length matching
 
-    // Before
+    // До
     seq.length > n
     seq.length < n
     seq.length == n
     seq.length != n
 
-    // After
+    // После
     seq.lengthCompare(n) > 0
     seq.lengthCompare(n) < 0
     seq.lengthCompare(n) == 0
     seq.lengthCompare(n) != 0
 
-Because length calculation might be “expensive” computation for
-some collection classes, we can reduce comparison time from `O(length)`
-to `O(length min n)` for decedents of `LinearSeq`
-(which might be hidden behind `Seq`-typed values).
+Поскольку вычисление размера коллекции может быть достаточно "дорогим" вычислением
+для некоторых классов коллекций, мы можем сократить время сравнения с `O(length)`
+до `O(length min n)` для наследников `LinearSeq` (которые могут быть спрятаны
+под `Seq`-подобными значениями).
 
-Besides, such approach is indispensable when
-we’re dealing with infinite streams.
+Кроме того, подобный подход незаменим ели вы имеете дело с бесконечными
+стримами.
 
 
-### 4.3 Equality
+### 4.3 Равенство
 #### Не полагайтесь на `==` для сравнения содержания массивов
 
     // До
@@ -319,127 +311,126 @@ we’re dealing with infinite streams.
     // После
     array1.sameElements(array2)
 
-Equality check always produces `false` for different array instances.
-Проверка на равество всегда производит `false` для различных экземпляров массивов.
+Проверка на равенство всегда будет выдавать `false` для различных экземпляров
+массивов.
 
 Также применимо к: `Iterator`.
 
 
-#### Don’t check equality between collections in different categories
+#### Не проверяйте на равенство коллекции различных категорий
 
-    // Before
+    // До
     seq == set
 
-    // After
+    // После
     seq.toSet == set
 
-Equality checks cannot be used to compare collections in
-different categories (i. e. `List` vs. `Set`).
+Проверки на равенство могут быть использованы для сравнения коллекций и
+различных категорий (например `List` и `Set`).
 
-Please note that you should think twice about exact meaning of such a check
-(in reference to the example — how to treat duplicates in the sequence).
+Прошу вас дважды подумать о смысле данной проверки (касательно примера выше —
+как рассматривать дубликаты в последовательности).
 
 
-#### Don’t use `sameElements` to compare ordinary collections
+#### Не используйте `sameElements` для сравнения обычных коллекций
 
-    // Before
+    // До
     seq1.sameElements(seq2)
 
-    // After
+    // После
     seq1 == seq2
 
-Equality check is the way to go when we’re comparing collections
-in the same category. In theory, that might improve performance
-because of possible underlying instance check
-(`eq`, which is usually much faster).
+Проверка равенства это способ, которым следует сравнивать коллекции одной и той
+же категории. В теории, это может улучшить производительность из-за наличия
+возможных низлежащих проверок экземпляра (`eq`, обычно намного быстрее).
 
 
-#### Don’t check equality correspondence manually
+#### Не используйте corresponds явно
 
-    // Before
+    // До
     seq1.corresponds(seq2)(_ == _)
 
-    // After
+    // После
     seq1 == seq2
 
-We have a built-in method that does the same.
-Both expressions respect order of elements.
-Again, we might benefit from performance improvement.
+У нас уже есть встроенный метод, который делает тоже самое. Оба выражения берут
+во внимание порядок элементов. И мы таки сможем выиграть в производительности.
 
-## 4.4 Indexing
-#### Don’t retrieve first element by index
+## 4.4 Индексация
+#### Не получайте первый элемент по индексу
 
-    // Before
+    // До
     seq(0)
 
-    // After
+    // После
     seq.head
 
-The updated approach may be slightly faster for some collection classes
-(check `List.apply` code, for example).
-Additionally, property access is simpler (both syntactically and semantically)
-than method call with an argument.
+Обновленный подход может быть слегка быстрее для некоторых типов коллекций
+(для примера, ознакомьтесь с кодом `List.apply`). Кроме того, доступ к свойству
+намного проще (как синтаксически, так и семантически), чем вызов метода с
+аргументом.
 
 
-#### Don’t retrieve last element by index
+#### Не получайте последний элемент по индексу
 
-    // Before
+    // До
     seq(seq.length - 1)
 
-    // After
+    // После
     seq.last
 
-The latter expression is more obvious and allows to avoid redundant
-collection length computation (that might be slow for linear sequences).
-Besides, some collection classes can retrieve last element more efficiently
-comparing to by-index access.
+Последнее выражение является более очевидным и при этом позволяет избежать
+избыточного вычисления длины коллекции (а для линейных последовательностей это
+может занять не мало времени). Более того, некоторые классы коллекций могут
+отдавать последний элемент более эффекивно, в сравнении с доступом по индексу.
 
 
-#### Don’t check index bounds explicitly
+#### Не проверяйте нахождение индекса в границах коллекции явно
 
-    // Before
+    // До
     if (i < seq.length) Some(seq(i)) else None
 
-    // After
+    // После
     seq.lift(i)
 
-The second expression is semantically equivalent, yet more concise.
+Семантически, второе выражение эквивалентно, однако более выразительно
 
 
-#### Don’t emulate headOption
+#### Не эмулируйте headOption
 
-    // Before
+    // До
     if (seq.nonEmpty) Some(seq.head) else None
     seq.lift(0)
 
-    // After
+    // После
     seq.headOption
 
-The optimized expression is more concise.
+Оптимизированное выражение более лаконично.
 
 
-#### Don’t emulate `lastOption`
+#### Не эмулируйте `lastOption`
 
-    // Before
+    // До
     if (seq.nonEmpty) Some(seq.last) else None
     seq.lift(seq.length - 1)
 
-    // After
+    // После
     seq.lastOption
 
-The optimized expression is more concise (and potentially faster).
+Оптимизированное выражение короче (и потенциально быстрее).
 
 
-#### Be careful with `indexOf` and `lastIndexOf` argument types
+#### Будьте осторожны с типами аргументов для `indexOf` и `lastIndexOf`
 
-    // Before
-    Seq(1, 2, 3).indexOf("1") // compilable
-    Seq(1, 2, 3).lastIndexOf("2") // compilable
+    // До
+    Seq(1, 2, 3).indexOf("1") // скомпилируется
+    Seq(1, 2, 3).lastIndexOf("2") // скомпилируется
 
-    //  After
+    // После
     Seq(1, 2, 3).indexOf(1)
     Seq(1, 2, 3).lastIndexOf(2)
 
+TODO:
 Because of [how variance works](http://stackoverflow.com/questions/2078246/why-does-seq-contains-accept-type-any-rather-than-the-type-parameter-a/2078619#2078619),
 `indexOf` and `lastIndexOf` methods accept arguments of `Any` type.
 In practice, that might lead to hard-to-find bugs, which are not

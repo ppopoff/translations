@@ -7,8 +7,7 @@
 Представляю вашему вниманию перевод статьи
 [Павла Фатина](https://pavelfatin.com/about)
 [Scala Collections Tips and Tricks](https://pavelfatin.com/scala-collections-tips-and-tricks/).
-Павел работает в [JetBrains](https://www.jetbrains.com/) и занимается
-разработкой
+Павел работает в [JetBrains](https://www.jetbrains.com/) и занимается разработкой
 [Scala плагина](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA)
 для IntelliJ IDEA.
 
@@ -17,8 +16,8 @@
 [интерфейса коллекций Scala](https://www.scala-lang.org/docu/files/collections-api/collections.html) usages.
 
 Некоторые советы основаны на тонкостях реализации библиотеки коллекций, однако
-большинство рецептов -- являются разумными преобразованиями, которые
-на практике часто упускаются из виду.
+большинство рецептов -- являются разумными преобразованиями, которые на практике
+часто упускаются из виду.
 
 Этот список вдохновлен моими попытками разработать практичные
 [инспекции для Scala коллекций](https://youtrack.jetbrains.com/oauth?state=%2Fissues%2FSCL%3Fq%3Dby%253A%2BPavel.Fatin%2Bcollection%2Border%2Bby%253A%2Bcreated)
@@ -57,8 +56,7 @@
   7. Maps
   8. Дополнение
 
-Все примеры кода доступны в
-[репозитории на GitHub](https://github.com/pavelfatin/scala-collections-tips-and-tricks).
+Все примеры кода доступны в [репозитории на GitHub](https://github.com/pavelfatin/scala-collections-tips-and-tricks).
 
 
 ## 1. Легенда
@@ -382,7 +380,7 @@ Scala 2.11 вызовы `Array.size` по прежнему выполняютс�
 Последнее выражение является более очевидным и при этом позволяет избежать
 избыточного вычисления длины коллекции (а для линейных последовательностей это
 может занять не мало времени). Более того, некоторые классы коллекций могут
-отдавать последний элемент более эффекивно, в сравнении с доступом по индексу.
+отдавать последний элемент более эффективно, в сравнении с доступом по индексу.
 
 
 #### Не проверяйте нахождение индекса в границах коллекции явно
@@ -430,15 +428,15 @@ Scala 2.11 вызовы `Array.size` по прежнему выполняютс�
     Seq(1, 2, 3).indexOf(1)
     Seq(1, 2, 3).lastIndexOf(2)
 
-TODO:
-Because of [how variance works](http://stackoverflow.com/questions/2078246/why-does-seq-contains-accept-type-any-rather-than-the-type-parameter-a/2078619#2078619),
-`indexOf` and `lastIndexOf` methods accept arguments of `Any` type.
-In practice, that might lead to hard-to-find bugs, which are not
-discoverable at compile time. That’s where auxiliary IDE
-inspections come in handy.
+В виду особенностей работы [вариантности](http://stackoverflow.com/questions/2078246/why-does-seq-contains-accept-type-any-rather-than-the-type-parameter-a/2078619#2078619),
+методы `indexOf` и `lastIndexOf` принимают аргументы типа `Any`.
+
+На практике, это может приводить к труднонаходимым багам, которые невозможно
+обнаружить на этапе компиляции. Вот где вспомогательные инспекции вашей IDE
+придуться к месту.
 
 
-#### Don’t construct indices range manually
+#### Не создавайте диапазон индексов последовательности вручную
 
     // До
     Range(0, seq.length)
@@ -446,10 +444,11 @@ inspections come in handy.
     // После
     seq.indices
 
-There’s a built-in method that returns the range of all indices of a sequence.
+Существует встроенный метод, который возвращает диапазон из всех индексов
+последовательности.
 
 
-#### Don’t zip collection with its indices manually
+#### Не связывайте коллекции с индексами вручную
 
     // До
     seq.zip(seq.indices)
@@ -457,16 +456,16 @@ There’s a built-in method that returns the range of all indices of a sequence.
     // После
     seq.zipWithIndex
 
-For one thing, the latter expression is more concise. Besides, we may
-expect some performance gain, because we avoid hidden
-length calculation (which might be expensive for linear sequences).
+Начнем с того, что последнее выражение короче. Помимо этого, мы можем ожидать
+некий прирост производительности, так как мы избегаем скрытого вычисления
+размера коллекции (что, в случае линейных последовтаельностей может обойтись
+недешево).
+Дополнительное преимущество последнего выражения в том -- что оно хорошо
+работает с возможно бесконечными коллекциями (например `Stream`).
 
-Additional benefit of the latter expression is that it works well with
-possibly infinite collections (like `Stream`).
 
-
-### 4.5 Existence
-#### Don’t use equality predicate to check element presence
+### 4.5 Существование
+#### Не используйте предикат сравения, для проверки наличия элемента
 
     // До
     seq.exists(_ == x)
@@ -474,30 +473,28 @@ possibly infinite collections (like `Stream`).
     // После
     seq.contains(x)
 
-The second expression is semantically equivalent, yet more concise.
+Второе выражение семантически эквивалентно, однако более выразительно.
 
-When those expressions are applied to `Set` classes,
-performance might be different as night and day,
-because sets offer close to `O(1)` lookups
-(due to internal indexing, which is left unused within `exists` calls).
+Когда эти выражения используются применительно к `Set`, производительность может
+отличаться значительно отличаться, из-за того что поиск у множеств стремится к
+O(1) (из-за внутреннего индексирования, не использующегося при вызове `exists`).
 
 Также применимо к: `Set`, `Option`, `Iterator`.
 
-#### Be careful with `contains` argument type
+#### Будьте осторожны с типом аргумента `contains`
 
-    // Before
-    Seq(1, 2, 3).contains("1") // compilable
+    // До
+    Seq(1, 2, 3).contains("1") // компилируется
 
-    //  After
+    // После
     Seq(1, 2, 3).contains(1)
 
-Just like `indexOf` and `lastIndexOf` methods,
-contains accepts arguments of `Any` type, what might lead
-to hard-to-find bugs, which are not discoverable at compile time.
-Be careful with the method arguments
 
+Так же как методы `indexOf` и `lastIndexOf`, `contains` принимает аргументы
+типа `Any`, что может привести к труднонаходимым багам, которые не находятся на
+этапе компиляции. Будьте осторожны с аргументами этих методов.
 
-#### Don’t use inequality predicate to check element absence
+#### Не используйте предикат неравенства для проверки отсутствия элемента
 
     // До
     seq.forall(_ != x)
@@ -505,34 +502,33 @@ Be careful with the method arguments
     // После
     !seq.contains(x)
 
-Again, the latter expression is cleaner and
-possibly faster (especially, for sets).
+И снова последнее выражение чище и, вероятно быстрее (особенно для множеств).
 
 Также применимо к: `Set`, `Option`, `Iterator`.
 
 
-#### Don’t count occurrences to check existence
+#### Не считайте вхождения для проверки существования
 
-    // Before
+    // До
     seq.count(p) > 0
     seq.count(p) != 0
     seq.count(p) == 0
 
-    //  After
+    // После
     seq.exists(p)
     seq.exists(p)
     !seq.exists(p)
 
-Obviously, when we need to know whether a predicate holds for some
-elements of the collection, counting the number of elements which
-satisfy the predicate is redundant.
-The optimized expressions looks cleaner and performs better.
+Очевидно, когда нам нужно знать, содержится ли удовлетворяющий предикату элемент
+в коллекции, подсчет количества удовлетворяющих элементов избыточен.
 
-The predicate `p` must be pure.
+Упрощенное выражение выглядит проще и работает быстрее.
+
+Предикат `p` должен быть чистой функцией.
 
 Также применимо к: `Set`, `Map`, `Iterator`.
 
-
+TODO:
 #### Don’t resort to filtering to check existence
 
     // Before

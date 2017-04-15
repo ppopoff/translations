@@ -11,8 +11,6 @@
 [Scala плагина](https://confluence.jetbrains.com/display/SCA/Scala+Plugin+for+IntelliJ+IDEA)
 для IntelliJ IDEA.
 
-----------------------------------------------------
-
 В этой статье представлен перечень упрощений и оптимизаций для типичного
 использования [API Scala коллекций](https://www.scala-lang.org/docu/files/collections-api/collections.html).
 
@@ -29,6 +27,8 @@
 Тем не менее, эти рецепты ценны сами по себе и могут помочь вам углубить ваше
 понимание стандартной библиотеки коллекций Scala и сделать ваш код быстрее и
 чище.
+
+<cut text="Читать далее →">
 
 
 **Содержание:**
@@ -1707,36 +1707,35 @@ Option. Кроме того, здесь представлены советы х
     // После
     map.filter(p(_._1))
 
-TODO:
-The `filterKeys` methods wraps the original map without copying any elements.
-There’s nothing wrong with that per se, however such a behaviour is hardly
-expected from `filterKeys` method.
-Because it unexpectedly behaves like a view, code performance might be
-substantially degraded in some cases (e. g. for `filterKeys(p).groupBy(???)`).
+Метод `filterKeys` обертывает исходную таблицу без копирования каких-либо
+элементов. В этом нет ничего плохого, однако подобное поведение от `filterKeys`
+вряд ли ожидается.
+Поскольку оно неожиданно ведет сродни представлению, производительность кода
+может быть существенно снижена для некоторых случаев, например для
+`filterKeys(p).groupBy(???)`.
 
-TODO:
-Another possible pitfall is unexpected “laziness” (collection transformers
-are expected to be strict by default) – the predicated is not evaluated at
-all withing the method call itself,
-so possible side effects might be reordered.
+Другой вероятной неприятностью является неожиданная «ленивость» (по умолчанию
+фильтры коллекций должны быть строгими) – при вызове самого метода предикат
+вообще не вычисляется, из-за чего возможные побочные эффекты могут быть
+переупорядочены.
 
-TODO:
-The `filterKeys` method should probably be deprecated, because it’s now
-impossible to [make it strict](https://issues.scala-lang.org/browse/SI-4776)
-without breaking backward compatibility. A more suitable name for the current
-implementation is `withKeyFilter` (by analogy with the `withFilter` method).
+Метод `filterKeys`, скорее всего, следовало бы объявить устаревшим, из-за
+невозможности [сделать его строгим](https://issues.scala-lang.org/browse/SI-4776)
+не сломав обратную совместимость. Более подходящим именем для текущей реализации
+будет `withKeyFilter` (по аналогии с `withFilter`).
 
-TODO:
-All in all, it seems reasonable to follow the
-[Rule of Least Surprise](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
-and to filter keys manually.
+В общем, вполне разумным будет следовать
+[Правилу наименьшего удивления](https://en.wikipedia.org/wiki/Principle_of_least_astonishment)
+и фильтровать ключи вручную.
 
-TODO:
-Nevertheless, as the view-like functionality of `filterKeys` is potentially
-useful (when only a few entries will be accessed while the map is relatively
-large), we may still consider using the method. To keep other people who read
-(or modify) our code from confusion, it’s better clarify our intent by defining
-an appropriate method synonym:
+Тем не менее, поскольку схожая с представлением функциональность `filterKeys`
+потенциально полезна (когда доступ будет только к небольшому числу записей,
+в то время как таблица будет относительно большой), мы все же сможем рассмотреть
+возможность использования этого метода.
+
+Для того чтобы не вводить в заблуждение людей, читающих (или модифицирующих)
+наш код, лучшим решением будет подчеркнуть наши намерения объявив подходящий
+синоним:
 
     type MapView[A, +B] = Map[A, B]
 
@@ -1760,8 +1759,8 @@ an appropriate method synonym:
     // После
     map.map(f(_._2))
 
-Основная причина такая же как и в предыдущем случае.
-Подобным способом мы можем объявить недвусмысленный синоним:
+Обоснование такое же как и в предыдущем случае.
+Аналогичным способом мы можем объявить недвусмысленный синоним:
 
     type MapView[A, +B] = Map[A, B]
 
@@ -1774,7 +1773,7 @@ an appropriate method synonym:
 
     def get(k: T) = map.get(k).map(f)
 
-#### Не фильтруйте ключи вручную
+#### Не отфильтровывайте ключи вручную
 
     // До
     map.filterKeys(!seq.contains(_))
@@ -1782,7 +1781,7 @@ an appropriate method synonym:
     // После
     map -- seq
 
-Мы можем полагаться на упрощенный синтаксический сахар, чтобы отфильтровать
+Мы можем полагаться на упрощенный синтаксис, чтобы отфильтровать
 ключи.
 
 #### Используйте операторы переприсваивания таблиц

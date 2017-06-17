@@ -1,7 +1,7 @@
 Не используйте return в Scala
 =============================
 
-Сегодня я бы хотел представить вашему вниманию перевод небольшой статьи Роберта Норриса, известного под псевдонимом [tpolecat](https://github.com/tpolecat?tab=repositories), достаточно широко известного по его вкладу в [cats](https://github.com/tpolecat/cats) и [doobie](https://github.com/tpolecat/doobie). Оригинал статьи вы можете найти по [ссылке](https://tpolecat.github.io/2014/05/09/return.html).
+Сегодня я бы хотел представить вашему вниманию перевод небольшой статьи Роберта Норриса, известного псевдонимом [tpolecat](https://github.com/tpolecat?tab=repositories). Роберт контрибьютит в [cats](https://github.com/typelevel/cats), а также разрабатывает [doobie](https://github.com/tpolecat/doobie). Оригинал статьи вы можете найти по [ссылке](https://tpolecat.github.io/2014/05/09/return.html).
 
 В этой статье автор рассказывает о том как использование `return` может негативно повлиять на семантику вашего кода, а также проливает свет на ряд интересных технических особенностей реализации `return` в Scala.
 

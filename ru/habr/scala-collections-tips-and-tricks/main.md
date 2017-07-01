@@ -16,7 +16,7 @@
 
 **Обновление:**
 Если вы испытываете тягу к приключениям,
-вы можете [узнать как помочь в развитии IntelliJ плагина для Scala](https://blog.jetbrains.com/scala/2016/04/21/how-to-contribute-to-intellij-scala-plugin/) и попробовать свои силы в реализации [подобрав подходящую подходящую инспекцию](https://youtrack.jetbrains.com/issues/SCL?q=summary:%20collection%20tag:%20%7BUp%20For%20Grabs%7D).
+вы можете [узнать как помочь в развитии IntelliJ плагина для Scala](https://blog.jetbrains.com/scala/2016/04/21/how-to-contribute-to-intellij-scala-plugin/) и попробовать свои силы в реализации [подобрав подходящую инспекцию](https://youtrack.jetbrains.com/issues/SCL?q=summary:%20collection%20tag:%20%7BUp%20For%20Grabs%7D).
 
 
 <cut text="Читать далее →">

@@ -1,5 +1,5 @@
-Секреты и трюки Scala коллекций
-===============================
+Scala коллекции: секреты и трюки
+================================
 
 <img src="https://pavelfatin.com/images/scala-collections.jpg"
      style="float:left">
